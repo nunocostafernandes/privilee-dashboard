@@ -29,24 +29,30 @@ export async function GET(req: NextRequest) {
     const clientIds = Array.from(new Set(rawVisits.map(v => v.ClientId).filter(Boolean))) as string[]
     const nameMap: Record<string, string> = {}
 
-    if (clientIds.length > 0) {
-      const url = new URL(`https://api.mindbodyonline.com/public/v6/client/clients`)
-      clientIds.forEach(id => url.searchParams.append('ClientIds', id))
-      const clientRes = await fetch(url.toString(), {
-        headers: {
-          'Api-Key': process.env.MBO_API_KEY!,
-          'SiteId': siteId,
-        },
-      })
-      if (clientRes.ok) {
-        const clientData = await clientRes.json()
-        for (const c of (clientData.Clients ?? [])) {
-          const first = c.FirstName?.trim() ?? ''
-          const lastInit = c.LastName?.charAt(0) ?? ''
-          nameMap[c.Id] = lastInit ? `${first} ${lastInit}.` : first
-        }
-      }
+    // Fetch names in chunks of 10 to avoid API limits
+    const CHUNK = 10
+    const chunks: string[][] = []
+    for (let i = 0; i < clientIds.length; i += CHUNK) {
+      chunks.push(clientIds.slice(i, i + CHUNK))
     }
+
+    await Promise.all(chunks.map(async (chunk) => {
+      const url = new URL('https://api.mindbodyonline.com/public/v6/client/clients')
+      chunk.forEach(id => url.searchParams.append('ClientIds', id))
+      try {
+        const clientRes = await fetch(url.toString(), {
+          headers: { 'Api-Key': process.env.MBO_API_KEY!, 'SiteId': siteId },
+        })
+        if (clientRes.ok) {
+          const clientData = await clientRes.json()
+          for (const c of (clientData.Clients ?? [])) {
+            const first = c.FirstName?.trim() ?? ''
+            const lastInit = c.LastName?.charAt(0) ?? ''
+            nameMap[c.Id] = lastInit ? `${first} ${lastInit}.` : first
+          }
+        }
+      } catch { /* name lookup best-effort */ }
+    }))
 
     const visits = rawVisits.map(v => ({
       name:        nameMap[v.ClientId ?? ''] ?? v.ClientId ?? 'Client',
