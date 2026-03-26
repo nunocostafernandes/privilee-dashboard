@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
 
@@ -59,7 +60,7 @@ async function voidPrivileeCredit(token: string, siteId: string, clientId: strin
 }
 
 export async function POST(req: NextRequest) {
-  const { classId, clientId, siteId, lateCancel } = await req.json()
+  const { classId, clientId, siteId, lateCancel, studioName, className, startTime, clientName } = await req.json()
 
   if (!classId || !clientId || !siteId) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -89,6 +90,29 @@ export async function POST(req: NextRequest) {
     if (!lateCancel) {
       await voidPrivileeCredit(token, siteId, clientId)
     }
+
+    // Log cancellation to Supabase (best-effort)
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      const d = startTime ? new Date(startTime) : new Date()
+      const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const classTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+      await supabase.from('privilee_bookings').insert({
+        type:           lateCancel ? 'late_cancel' : 'early_cancel',
+        studio_name:    studioName ?? '',
+        studio_site_id: siteId,
+        class_id:       classId,
+        class_name:     className ?? '',
+        class_date:     classDate,
+        class_time:     classTime,
+        client_id:      clientId,
+        client_name:    clientName ?? '',
+        client_email:   '',
+      })
+    } catch { /* non-fatal */ }
 
     return NextResponse.json({ success: true })
   } catch (err: unknown) {

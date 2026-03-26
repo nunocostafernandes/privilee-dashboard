@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 
 interface Booking {
   id: number
+  type: string
   studio_name: string
   class_name: string
   class_date: string
@@ -11,6 +12,12 @@ interface Booking {
   client_email: string
   notes: string | null
   created_at: string
+}
+
+const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  booking:      { label: 'Booked',        color: '#22c55e', bg: 'rgba(34,197,94,0.12)'  },
+  early_cancel: { label: 'Early Cancel',  color: '#f97316', bg: 'rgba(249,115,22,0.12)' },
+  late_cancel:  { label: 'Late Cancel',   color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
 }
 
 const STUDIO_CONFIG: Record<string, { short: string; color: string }> = {
@@ -169,6 +176,7 @@ export default function StatsView() {
 
   const studios = Array.from(new Set(bookings.map(b => b.studio_name)))
   const countByStudio = studios.map(s => ({ name: s, count: bookings.filter(b => b.studio_name === s).length }))
+  const cancelCount = bookings.filter(b => b.type === 'early_cancel' || b.type === 'late_cancel').length
 
   const filtered = bookings.filter(b => {
     const matchStudio = studioFilter === 'All' || b.studio_name === studioFilter
@@ -188,6 +196,10 @@ export default function StatsView() {
         <div className="flex-1 px-4 py-3 flex flex-col" style={{ background: 'var(--card)' }}>
           <span className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Total</span>
           <span className="text-xl font-bold" style={{ color: 'var(--accent)' }}>{bookings.length}</span>
+        </div>
+        <div className="flex-1 px-4 py-3 flex flex-col" style={{ background: 'var(--card)' }}>
+          <span className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Cancelled</span>
+          <span className="text-xl font-bold" style={{ color: '#ef4444' }}>{cancelCount}</span>
         </div>
         {countByStudio.map(s => {
           const cfg = STUDIO_CONFIG[s.name]
@@ -246,16 +258,28 @@ export default function StatsView() {
         <div className="space-y-2">
           {filtered.map(b => {
             const cfg = STUDIO_CONFIG[b.studio_name]
+            const typeCfg = TYPE_CONFIG[b.type] ?? TYPE_CONFIG['booking']
             return (
               <div
                 key={b.id}
                 className="rounded-xl px-4 pt-3 pb-2"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                style={{
+                  background: 'var(--card)',
+                  border: `1px solid ${typeCfg ? typeCfg.color + '40' : 'var(--border)'}`,
+                }}
               >
                 {/* Top row: client + class info */}
                 <div className="flex items-start justify-between gap-3 mb-2.5">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{b.client_name}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{b.client_name}</p>
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
+                        style={{ color: typeCfg?.color ?? 'var(--text-muted)', background: typeCfg?.bg ?? 'var(--border)' }}
+                      >
+                        {typeCfg?.label ?? b.type}
+                      </span>
+                    </div>
                     <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{b.client_email}</p>
                   </div>
                   <div className="text-right shrink-0">

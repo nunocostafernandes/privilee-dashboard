@@ -100,7 +100,11 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
       const res = await fetch('/api/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classId: cls.classId, clientId, siteId, lateCancel }),
+        body: JSON.stringify({
+          classId: cls.classId, clientId, siteId, lateCancel,
+          studioName, className: cls.className, startTime: cls.startTime,
+          clientName: visits?.find(v => v.clientId === clientId)?.name ?? '',
+        }),
       })
       if (!res.ok) {
         const data = await res.json()
