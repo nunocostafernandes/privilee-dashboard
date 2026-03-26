@@ -87,7 +87,7 @@ async function createMboClient(
   token: string, siteId: string,
   firstName: string, lastName: string, email: string, mobile: string
 ): Promise<string> {
-  const res = await fetch(`${MBO_BASE}/client/addorclient`, {
+  const res = await fetch(`${MBO_BASE}/client/addorupdateclient`, {
     method: 'POST',
     headers: headers(token, siteId),
     body: JSON.stringify({
