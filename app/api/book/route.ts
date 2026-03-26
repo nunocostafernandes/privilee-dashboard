@@ -127,7 +127,7 @@ async function sellPrivileeService(token: string, siteId: string, clientId: stri
 }
 
 async function bookClass(token: string, siteId: string, classId: number, clientId: string): Promise<number | null> {
-  const res = await fetch(`${MBO_BASE}/class/addbooking`, {
+  const res = await fetch(`${MBO_BASE}/class/addclienttoclass`, {
     method: 'POST',
     headers: headers(token, siteId),
     body: JSON.stringify({
@@ -142,7 +142,7 @@ async function bookClass(token: string, siteId: string, classId: number, clientI
     throw new Error(err?.Error?.Message ?? 'Failed to book class')
   }
   const data = await res.json()
-  return data.ClassBooking?.Id ?? null
+  return data.Visit?.Id ?? null
 }
 
 export async function POST(req: NextRequest) {
