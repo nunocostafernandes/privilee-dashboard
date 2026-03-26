@@ -90,8 +90,11 @@ export default function Home() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold tracking-tight">Privilee Dashboard</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-widest mb-0.5">Privilee Dashboard</p>
+            <h1 className="text-2xl font-bold tracking-tight">{studio.name}</h1>
+          </div>
           <RefreshButton
             onRefresh={handleRefresh}
             loading={loading || backgroundLoading}
@@ -105,7 +108,9 @@ export default function Home() {
           </div>
         )}
 
-        <StudioTabs active={studio} onChange={setStudio} />
+        <div className="mb-4 mt-4">
+          <StudioTabs active={studio} onChange={setStudio} />
+        </div>
         <DateStrip active={date} onChange={setDate} />
 
         <div className="mt-4 flex justify-end mb-3">
