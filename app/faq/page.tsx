@@ -158,7 +158,7 @@ export default function FaqPage() {
                 { label: 'Download CSV', body: 'Tap the CSV button to export the full list — useful for monthly Privilee reconciliation.' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', gap: '12px', padding: '10px 14px', borderRadius: '8px', background: 'var(--card)', border: '1px solid var(--border)', fontSize: '13px' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--accent)', minWidth: '110px', shrink: 0 }}>{item.label}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--accent)', minWidth: '110px', flexShrink: 0 }}>{item.label}</span>
                   <span style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.body}</span>
                 </div>
               ))}
