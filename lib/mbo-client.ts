@@ -85,16 +85,3 @@ export function mapClass(raw: MboRawClass) {
   }
 }
 
-interface MboRawVisit {
-  Client?: { FirstName?: string; LastName?: string }
-  AppointmentStatus?: string
-}
-
-export function mapVisit(raw: MboRawVisit) {
-  const first = raw.Client?.FirstName ?? ''
-  const last  = raw.Client?.LastName?.charAt(0) ?? ''
-  return {
-    name:   `${first} ${last}.`,
-    status: raw.AppointmentStatus ?? 'Unknown',
-  }
-}

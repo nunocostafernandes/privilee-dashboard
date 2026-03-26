@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { mboFetch, mapVisit } from '@/lib/mbo-client'
+import { mboFetch } from '@/lib/mbo-client'
+
+interface RawVisit {
+  ClientId?: string
+  AppointmentStatus?: string
+}
 
 export async function GET(req: NextRequest) {
   const classId = req.nextUrl.searchParams.get('classId')
@@ -10,22 +15,45 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await mboFetch(
-      '/class/classvisits',
-      siteId,
-      { ClassID: classId }
-    )
+    const res = await mboFetch('/class/classvisits', siteId, { ClassID: classId })
 
     if (!res.ok) {
       return NextResponse.json({ error: 'MBO unavailable' }, { status: 503 })
     }
 
     const data = await res.json()
-    const visits = (data.Class?.Visits ?? []).map(mapVisit)
+    const rawVisits: RawVisit[] = data.Class?.Visits ?? []
+
+    // Batch-fetch client names using ClientIds (works with API key only)
+    const clientIds = [...new Set(rawVisits.map(v => v.ClientId).filter(Boolean))]
+    let nameMap: Record<string, string> = {}
+
+    if (clientIds.length > 0) {
+      const url = new URL(`https://api.mindbodyonline.com/public/v6/client/clients`)
+      clientIds.forEach(id => url.searchParams.append('ClientIds', id!))
+      const clientRes = await fetch(url.toString(), {
+        headers: {
+          'Api-Key': process.env.MBO_API_KEY!,
+          'SiteId': siteId,
+        },
+      })
+      if (clientRes.ok) {
+        const clientData = await clientRes.json()
+        for (const c of (clientData.Clients ?? [])) {
+          const first = c.FirstName?.trim() ?? ''
+          const lastInit = c.LastName?.charAt(0) ?? ''
+          nameMap[c.Id] = lastInit ? `${first} ${lastInit}.` : first
+        }
+      }
+    }
+
+    const visits = rawVisits.map(v => ({
+      name:   nameMap[v.ClientId ?? ''] ?? v.ClientId ?? 'Client',
+      status: v.AppointmentStatus ?? 'Unknown',
+    }))
 
     return NextResponse.json(visits)
-  } catch (err: unknown) {
-    const msg = (err instanceof Error && err.message.includes('token')) ? 'MBO auth unavailable' : 'MBO unavailable'
-    return NextResponse.json({ error: msg }, { status: 503 })
+  } catch {
+    return NextResponse.json({ error: 'MBO unavailable' }, { status: 503 })
   }
 }
