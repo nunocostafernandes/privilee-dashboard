@@ -27,6 +27,43 @@ async function getStaffToken(siteId: string): Promise<string> {
   return cachedToken!
 }
 
+function headers(token: string, siteId: string) {
+  return {
+    'Content-Type': 'application/json',
+    'Api-Key': process.env.MBO_API_KEY!,
+    'SiteId': siteId,
+    'Authorization': `Bearer ${token}`,
+  }
+}
+
+async function voidPrivileeCredit(token: string, siteId: string, clientId: string): Promise<void> {
+  // Fetch client's active services
+  const res = await fetch(
+    `${MBO_BASE}/client/clientservices?clientId=${encodeURIComponent(clientId)}`,
+    { headers: headers(token, siteId) }
+  )
+  if (!res.ok) return // best-effort
+
+  const data = await res.json()
+  const services: { Id: number; Name: string }[] = data.ClientServices ?? []
+  const privileeServices = services.filter(s => s.Name.toLowerCase().includes('privilee'))
+
+  // Set expiration to yesterday on each Privilee service found
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0] + 'T00:00:00'
+
+  await Promise.all(privileeServices.map(svc =>
+    fetch(`${MBO_BASE}/client/updateclientservice`, {
+      method: 'POST',
+      headers: headers(token, siteId),
+      body: JSON.stringify({
+        ClientId: clientId,
+        ServiceId: svc.Id,
+        ExpirationDate: yesterday,
+      }),
+    })
+  ))
+}
+
 export async function POST(req: NextRequest) {
   const { classId, clientId, siteId, lateCancel } = await req.json()
 
@@ -37,14 +74,10 @@ export async function POST(req: NextRequest) {
   try {
     const token = await getStaffToken(siteId)
 
+    // Cancel the booking
     const res = await fetch(`${MBO_BASE}/class/removeclientfromclass`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Api-Key': process.env.MBO_API_KEY!,
-        'SiteId': siteId,
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: headers(token, siteId),
       body: JSON.stringify({
         ClassId: classId,
         ClientId: clientId,
@@ -56,6 +89,11 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err?.Error?.Message ?? 'Failed to cancel booking')
+    }
+
+    // For early cancel only: void the restored Privilee credit
+    if (!lateCancel) {
+      await voidPrivileeCredit(token, siteId, clientId)
     }
 
     return NextResponse.json({ success: true })
