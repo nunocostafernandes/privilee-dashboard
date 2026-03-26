@@ -20,14 +20,7 @@ const STUDIO_CONFIG: Record<string, { short: string; color: string }> = {
 }
 
 function formatDate(date: string, time: string) {
-  const d = new Date(date)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' · ' + time
-}
-
-function formatBookedAt(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true,
-  })
+  return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' · ' + time
 }
 
 function NoteCell({ booking, onSave }: { booking: Booking; onSave: (id: number, notes: string) => void }) {
@@ -36,8 +29,7 @@ function NoteCell({ booking, onSave }: { booking: Booking; onSave: (id: number, 
   const [saving, setSaving]   = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
 
-  function startEdit(e: React.MouseEvent) {
-    e.stopPropagation()
+  function startEdit() {
     setValue(booking.notes ?? '')
     setEditing(true)
     setTimeout(() => ref.current?.focus(), 0)
@@ -67,70 +59,68 @@ function NoteCell({ booking, onSave }: { booking: Booking; onSave: (id: number, 
 
   if (editing) {
     return (
-      <div className="flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
+      <div className="flex flex-col gap-1.5">
         <textarea
           ref={ref}
           value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={handleKey}
           rows={2}
-          placeholder="Add a note…"
-          className="w-full rounded-md px-2.5 py-1.5 text-xs resize-none focus:outline-none"
+          placeholder="Type a note… (Enter to save, Esc to cancel)"
+          className="w-full rounded-lg px-3 py-2 text-xs resize-none focus:outline-none"
           style={{
-            background: 'rgba(249,115,22,0.08)',
-            border: '1px solid rgba(249,115,22,0.4)',
+            background: 'rgba(249,115,22,0.07)',
+            border: '1px solid rgba(249,115,22,0.35)',
             color: 'var(--text)',
           }}
         />
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3">
           <button
             onClick={save}
             disabled={saving}
-            className="text-xs font-semibold transition-opacity disabled:opacity-40"
-            style={{ color: 'var(--accent)' }}
+            className="text-xs font-semibold px-3 py-1 rounded-md transition-opacity disabled:opacity-40"
+            style={{ background: 'var(--accent)', color: '#fff' }}
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
           <button
             onClick={cancel}
-            className="text-xs"
-            style={{ color: 'var(--text-muted)' }}
+            className="text-xs px-3 py-1 rounded-md"
+            style={{ background: 'var(--border)', color: 'var(--text-muted)' }}
           >
             Cancel
           </button>
-          <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>↵ save · esc cancel</span>
         </div>
       </div>
     )
   }
 
   return (
-    <button onClick={startEdit} className="group flex items-start gap-1.5 w-full text-left">
+    <button
+      onClick={startEdit}
+      className="w-full text-left rounded-lg px-3 py-2 transition-colors"
+      style={{
+        background: booking.notes ? 'rgba(255,255,255,0.04)' : 'transparent',
+        border: `1px solid ${booking.notes ? 'var(--border)' : 'transparent'}`,
+        minHeight: '34px',
+      }}
+      onMouseEnter={e => {
+        if (!booking.notes) e.currentTarget.style.borderColor = 'var(--border)'
+      }}
+      onMouseLeave={e => {
+        if (!booking.notes) e.currentTarget.style.borderColor = 'transparent'
+      }}
+    >
       {booking.notes ? (
-        <span className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-xs leading-relaxed" style={{ color: 'var(--text)' }}>
           {booking.notes}
         </span>
       ) : (
-        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-          <PencilIcon />
-          <span>Add note</span>
-        </span>
-      )}
-      {booking.notes && (
-        <span className="opacity-0 group-hover:opacity-60 transition-opacity mt-px shrink-0" style={{ color: 'var(--accent)' }}>
-          <PencilIcon />
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          + Add note
         </span>
       )}
     </button>
-  )
-}
-
-function PencilIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
   )
 }
 
@@ -165,9 +155,9 @@ export default function StatsView() {
 
   if (loading) {
     return (
-      <div className="mt-4 space-y-px">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-14 rounded animate-pulse" style={{ background: 'var(--card)', opacity: 1 - i * 0.12 }} />
+      <div className="mt-4 space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: 'var(--card)', opacity: 1 - i * 0.15 }} />
         ))}
       </div>
     )
@@ -191,40 +181,38 @@ export default function StatsView() {
   })
 
   return (
-    <div className="mt-3">
+    <div className="mt-3 space-y-4">
 
       {/* Stats strip */}
-      <div className="flex items-center gap-0 mb-4 overflow-x-auto">
-        <div className="shrink-0 pr-4" style={{ borderRight: '1px solid var(--border)' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>Total</p>
-          <p className="text-2xl font-bold leading-none" style={{ color: 'var(--accent)' }}>{bookings.length}</p>
+      <div className="flex gap-px rounded-xl overflow-hidden" style={{ background: 'var(--border)' }}>
+        <div className="flex-1 px-4 py-3 flex flex-col" style={{ background: 'var(--card)' }}>
+          <span className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Total</span>
+          <span className="text-xl font-bold" style={{ color: 'var(--accent)' }}>{bookings.length}</span>
         </div>
         {countByStudio.map(s => {
           const cfg = STUDIO_CONFIG[s.name]
           return (
-            <div key={s.name} className="shrink-0 px-4" style={{ borderRight: '1px solid var(--border)' }}>
-              <p className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>
+            <div key={s.name} className="flex-1 px-4 py-3 flex flex-col" style={{ background: 'var(--card)' }}>
+              <span className="text-xs font-semibold uppercase tracking-widest mb-1 truncate" style={{ color: 'var(--text-muted)' }}>
                 {cfg?.short ?? s.name}
-              </p>
-              <p className="text-2xl font-bold leading-none" style={{ color: cfg?.color ?? 'var(--text)' }}>
-                {s.count}
-              </p>
+              </span>
+              <span className="text-xl font-bold" style={{ color: cfg?.color ?? 'var(--text)' }}>{s.count}</span>
             </div>
           )
         })}
       </div>
 
-      {/* Search + filter */}
-      <div className="flex gap-2 mb-4">
+      {/* Search + studio filter */}
+      <div className="flex gap-2">
         <div className="relative flex-1 min-w-0">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }}>
             <SearchIcon />
           </span>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search client, class…"
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg focus:outline-none transition-colors"
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg focus:outline-none transition-all"
             style={{
               background: 'var(--card)',
               border: '1px solid var(--border)',
@@ -234,111 +222,62 @@ export default function StatsView() {
             onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
           />
         </div>
-        <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--card)' }}>
-          {['All', ...studios].map(s => {
-            const cfg = STUDIO_CONFIG[s]
-            const isActive = studioFilter === s
-            const label = cfg?.short ?? s
-            return (
-              <button
-                key={s}
-                onClick={() => setStudioFilter(s)}
-                className="px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap"
-                style={{
-                  color: isActive ? (cfg?.color ?? 'var(--accent)') : 'var(--text-muted)',
-                  borderBottom: isActive ? `2px solid ${cfg?.color ?? 'var(--accent)'}` : '2px solid transparent',
-                  background: isActive ? 'rgba(255,255,255,0.04)' : 'transparent',
-                }}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
+        <select
+          value={studioFilter}
+          onChange={e => setStudioFilter(e.target.value)}
+          className="px-3 py-2 text-xs rounded-lg focus:outline-none"
+          style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+          }}
+        >
+          <option value="All">All Studios</option>
+          {studios.map(s => (
+            <option key={s} value={s}>{STUDIO_CONFIG[s]?.short ?? s}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Results count */}
-      {search || studioFilter !== 'All' ? (
-        <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-          {filtered.length} result{filtered.length !== 1 ? 's' : ''}
-        </p>
-      ) : null}
-
-      {/* List */}
+      {/* Booking rows */}
       {filtered.length === 0 ? (
         <p className="text-xs py-8 text-center" style={{ color: 'var(--text-muted)' }}>No bookings match.</p>
       ) : (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          {/* Column headers */}
-          <div
-            className="grid gap-0 px-4 py-2"
-            style={{
-              background: 'var(--card)',
-              borderBottom: '1px solid var(--border)',
-              gridTemplateColumns: '1fr auto',
-            }}
-          >
-            <div className="flex items-center gap-6">
-              <span className="text-xs font-semibold uppercase tracking-widest w-40 shrink-0" style={{ color: 'var(--text-muted)' }}>Client</span>
-              <span className="text-xs font-semibold uppercase tracking-widest hidden sm:block" style={{ color: 'var(--text-muted)' }}>Class · Date</span>
-            </div>
-            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Notes</span>
-          </div>
-
-          {filtered.map((b, i) => {
+        <div className="space-y-2">
+          {filtered.map(b => {
             const cfg = STUDIO_CONFIG[b.studio_name]
             return (
               <div
                 key={b.id}
-                className="px-4 py-3 transition-colors"
-                style={{
-                  borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
-                  background: 'transparent',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                className="rounded-xl px-4 pt-3 pb-2"
+                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
               >
-                <div className="flex items-start gap-0">
-                  {/* Left: client + class */}
-                  <div className="flex items-start gap-6 flex-1 min-w-0">
-                    {/* Client */}
-                    <div className="w-40 shrink-0">
-                      <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{b.client_name}</p>
-                      <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{b.client_email}</p>
-                    </div>
-
-                    {/* Class + studio + date */}
-                    <div className="hidden sm:block min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{b.class_name}</span>
-                        <span
-                          className="text-xs font-semibold px-1.5 py-px rounded shrink-0"
-                          style={{
-                            color: cfg?.color ?? 'var(--text-muted)',
-                            background: cfg ? `${cfg.color}18` : 'var(--border)',
-                          }}
-                        >
-                          {cfg?.short ?? b.studio_name}
-                        </span>
-                      </div>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {formatDate(b.class_date, b.class_time)}
-                        <span className="mx-2" style={{ color: 'var(--border)' }}>·</span>
-                        <span>booked {formatBookedAt(b.created_at)}</span>
-                      </p>
-                    </div>
-
-                    {/* Mobile: class only */}
-                    <div className="block sm:hidden min-w-0">
+                {/* Top row: client + class info */}
+                <div className="flex items-start justify-between gap-3 mb-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{b.client_name}</p>
+                    <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{b.client_email}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="flex items-center gap-2 justify-end mb-0.5">
                       <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>{b.class_name}</p>
-                      <p className="text-xs" style={{ color: cfg?.color ?? 'var(--text-muted)' }}>{cfg?.short ?? b.studio_name}</p>
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                        style={{
+                          color: cfg?.color ?? 'var(--text-muted)',
+                          background: cfg ? `${cfg.color}20` : 'var(--border)',
+                        }}
+                      >
+                        {cfg?.short ?? b.studio_name}
+                      </span>
                     </div>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(b.class_date, b.class_time)}</p>
                   </div>
+                </div>
 
-                  {/* Notes */}
-                  <div className="w-36 shrink-0 pl-3">
-                    <NoteCell booking={b} onSave={handleNoteSave} />
-                  </div>
+                {/* Notes — full width, always visible */}
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+                  <NoteCell booking={b} onSave={handleNoteSave} />
                 </div>
               </div>
             )
