@@ -25,12 +25,12 @@ export async function GET(req: NextRequest) {
     const rawVisits: RawVisit[] = data.Class?.Visits ?? []
 
     // Batch-fetch client names using ClientIds (works with API key only)
-    const clientIds = [...new Set(rawVisits.map(v => v.ClientId).filter(Boolean))]
+    const clientIds = Array.from(new Set(rawVisits.map(v => v.ClientId).filter(Boolean))) as string[]
     const nameMap: Record<string, string> = {}
 
     if (clientIds.length > 0) {
       const url = new URL(`https://api.mindbodyonline.com/public/v6/client/clients`)
-      clientIds.forEach(id => url.searchParams.append('ClientIds', id!))
+      clientIds.forEach(id => url.searchParams.append('ClientIds', id))
       const clientRes = await fetch(url.toString(), {
         headers: {
           'Api-Key': process.env.MBO_API_KEY!,
