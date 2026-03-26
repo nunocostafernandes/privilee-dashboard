@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   classId: number
@@ -9,6 +9,14 @@ interface Props {
   studioName: string
   onClose: () => void
   onBooked: () => void
+}
+
+interface ClientSuggestion {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  mobile: string
 }
 
 function formatTime(dt: string) {
@@ -23,6 +31,45 @@ export default function BookingModal({ classId, className, startTime, siteId, st
   const [status, setStatus]       = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg]   = useState('')
   const [bookedName, setBookedName] = useState('')
+
+  const [suggestions, setSuggestions] = useState<ClientSuggestion[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function handleEmailChange(value: string) {
+    setEmail(value)
+    setShowSuggestions(false)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (value.length < 3) { setSuggestions([]); return }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/clientsearch?q=${encodeURIComponent(value)}&siteId=${siteId}`)
+        const data: ClientSuggestion[] = await res.json()
+        setSuggestions(data)
+        setShowSuggestions(data.length > 0)
+      } catch { /* ignore */ }
+    }, 300)
+  }
+
+  function selectSuggestion(c: ClientSuggestion) {
+    setEmail(c.email)
+    setFirstName(c.firstName)
+    setLastName(c.lastName)
+    setMobile(c.mobile)
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -109,17 +156,36 @@ export default function BookingModal({ classId, className, startTime, siteId, st
                 />
               </div>
             </div>
-            <div>
+
+            <div className="relative" ref={dropdownRef}>
               <label className="block text-xs text-[var(--text-muted)] mb-1.5">Email</label>
               <input
                 required
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => handleEmailChange(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                 placeholder="sara@example.com"
+                autoComplete="off"
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
               />
+              {showSuggestions && (
+                <div className="absolute z-10 w-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden">
+                  {suggestions.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => selectSuggestion(c)}
+                      className="w-full text-left px-3 py-2.5 hover:bg-[var(--bg)] transition-colors border-b border-[var(--border)] last:border-0"
+                    >
+                      <span className="block text-sm font-medium">{c.firstName} {c.lastName}</span>
+                      <span className="block text-xs text-[var(--text-muted)]">{c.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
             <div>
               <label className="block text-xs text-[var(--text-muted)] mb-1.5">Mobile</label>
               <input
