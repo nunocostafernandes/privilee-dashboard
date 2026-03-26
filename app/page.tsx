@@ -6,6 +6,7 @@ import StudioTabs from '@/components/StudioTabs'
 import DateStrip from '@/components/DateStrip'
 import ClassGrid from '@/components/ClassGrid'
 import RefreshButton from '@/components/RefreshButton'
+import StatsView from '@/components/StatsView'
 
 const AUTO_REFRESH_MS = 15 * 60 * 1000
 
@@ -25,6 +26,7 @@ export default function Home() {
   const [lastUpdated, setLastUpdated]   = useState<Date | null>(null)
   const [refreshKey, setRefreshKey]     = useState(0)
   const [privOnly, setPrivOnly]         = useState(true)
+  const [activeTab, setActiveTab]       = useState<'classes' | 'stats'>('classes')
   const abortRef = useRef<AbortController | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -93,47 +95,77 @@ export default function Home() {
         <div className="flex items-center justify-between mb-2">
           <div>
             <p className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-widest mb-0.5">Privilee Dashboard</p>
-            <h1 className="text-2xl font-bold tracking-tight">{studio.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {activeTab === 'classes' ? studio.name : 'All Bookings'}
+            </h1>
           </div>
-          <RefreshButton
-            onRefresh={handleRefresh}
-            loading={loading || backgroundLoading}
-            lastUpdated={lastUpdated}
-          />
+          {activeTab === 'classes' && (
+            <RefreshButton
+              onRefresh={handleRefresh}
+              loading={loading || backgroundLoading}
+              lastUpdated={lastUpdated}
+            />
+          )}
         </div>
 
-        {refreshError && (
-          <div className="mb-4 px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--red)] text-sm text-[var(--text-muted)]">
-            Refresh failed — showing last data
-          </div>
-        )}
-
-        <div className="mb-4 mt-4">
-          <StudioTabs active={studio} onChange={setStudio} />
-        </div>
-        <DateStrip active={date} onChange={setDate} />
-
-        <div className="mt-4 flex justify-end mb-3">
+        {/* Top-level tab switcher */}
+        <div className="flex gap-1 p-1 rounded-xl mb-4 mt-3" style={{ backgroundColor: 'var(--card)' }}>
           <button
-            onClick={() => setPrivOnly(v => !v)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-              privOnly
-                ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
-                : 'bg-transparent border-[var(--border)] text-[var(--text-muted)]'
+            onClick={() => setActiveTab('classes')}
+            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'classes' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
             }`}
           >
-            Privilee Only
+            Classes
+          </button>
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'stats' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+          >
+            Stats
           </button>
         </div>
 
-        <ClassGrid
-          classes={loading ? null : (error ? [] : classes)}
-          error={error}
-          siteId={studio.siteId}
-          studioName={studio.name}
-          refreshKey={refreshKey}
-          privOnly={privOnly}
-        />
+        {activeTab === 'stats' ? (
+          <StatsView />
+        ) : (
+          <>
+            {refreshError && (
+              <div className="mb-4 px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--red)] text-sm text-[var(--text-muted)]">
+                Refresh failed — showing last data
+              </div>
+            )}
+
+            <div className="mb-4">
+              <StudioTabs active={studio} onChange={setStudio} />
+            </div>
+            <DateStrip active={date} onChange={setDate} />
+
+            <div className="mt-4 flex justify-end mb-3">
+              <button
+                onClick={() => setPrivOnly(v => !v)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                  privOnly
+                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                    : 'bg-transparent border-[var(--border)] text-[var(--text-muted)]'
+                }`}
+              >
+                Privilee Only
+              </button>
+            </div>
+
+            <ClassGrid
+              classes={loading ? null : (error ? [] : classes)}
+              error={error}
+              siteId={studio.siteId}
+              studioName={studio.name}
+              refreshKey={refreshKey}
+              privOnly={privOnly}
+            />
+          </>
+        )}
       </div>
     </div>
   )
