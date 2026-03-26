@@ -9,6 +9,7 @@ interface ClassItem {
   totalBooked: number
   maxCapacity: number
   waitlistCount: number
+  bookingCount: number
 }
 
 interface Visit { name: string; status: string; serviceName: string }
@@ -83,7 +84,7 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
         </span>
         <span className="flex-1 font-semibold text-sm truncate">{cls.className}</span>
         <span className={`px-2 py-0.5 rounded-full text-xs font-bold text-white shrink-0 ${pill}`}>
-          {visits !== null ? visits.length : '?'}
+          {visits !== null ? visits.length : cls.bookingCount}
         </span>
       </div>
 
