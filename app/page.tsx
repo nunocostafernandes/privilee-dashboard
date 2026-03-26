@@ -26,7 +26,7 @@ export default function Home() {
   const [lastUpdated, setLastUpdated]   = useState<Date | null>(null)
   const [refreshKey, setRefreshKey]     = useState(0)
   const [privOnly, setPrivOnly]         = useState(true)
-  const [activeTab, setActiveTab]       = useState<'classes' | 'stats'>('classes')
+  const [activeTab, setActiveTab]       = useState<'classes' | 'history'>('classes')
   const abortRef = useRef<AbortController | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -96,39 +96,45 @@ export default function Home() {
           <div>
             <p className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-widest mb-0.5">Privilee Dashboard</p>
             <h1 className="text-2xl font-bold tracking-tight">
-              {activeTab === 'classes' ? studio.name : 'All Bookings'}
+              {activeTab === 'classes' ? studio.name : 'History'}
             </h1>
           </div>
-          {activeTab === 'classes' && (
-            <RefreshButton
-              onRefresh={handleRefresh}
-              loading={loading || backgroundLoading}
-              lastUpdated={lastUpdated}
-            />
-          )}
+          <div className="flex items-center gap-3">
+            {activeTab === 'classes' ? (
+              <>
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className="text-xs font-medium transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+                >
+                  History
+                </button>
+                <RefreshButton
+                  onRefresh={handleRefresh}
+                  loading={loading || backgroundLoading}
+                  lastUpdated={lastUpdated}
+                />
+              </>
+            ) : (
+              <button
+                onClick={() => setActiveTab('classes')}
+                className="flex items-center gap-1.5 text-xs font-medium transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6"/>
+                </svg>
+                Classes
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Top-level tab switcher */}
-        <div className="flex gap-1 p-1 rounded-xl mb-4 mt-3" style={{ backgroundColor: 'var(--card)' }}>
-          <button
-            onClick={() => setActiveTab('classes')}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'classes' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
-          >
-            Classes
-          </button>
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'stats' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
-          >
-            Stats
-          </button>
-        </div>
-
-        {activeTab === 'stats' ? (
+        {activeTab === 'history' ? (
           <StatsView />
         ) : (
           <>
