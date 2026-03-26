@@ -13,8 +13,7 @@ export async function GET(req: NextRequest) {
     const res = await mboFetch(
       '/class/classvisits',
       siteId,
-      { ClassIds: classId },
-      true // needs UserToken
+      { ClassID: classId }
     )
 
     if (!res.ok) {
@@ -22,7 +21,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json()
-    const visits = (data.Visits ?? []).map(mapVisit)
+    const visits = (data.Class?.Visits ?? []).map(mapVisit)
 
     return NextResponse.json(visits)
   } catch (err: unknown) {

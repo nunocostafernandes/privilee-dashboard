@@ -20,9 +20,9 @@ interface Props {
 }
 
 function pillColor(totalBooked: number, maxCapacity: number, waitlistCount: number): string {
-  if (waitlistCount > 0)                 return 'bg-[var(--red)]'
-  if (totalBooked >= maxCapacity)        return 'bg-[var(--red)]'
-  if (totalBooked / maxCapacity >= 0.8)  return 'bg-[var(--accent)]'
+  if (waitlistCount > 0)                                    return 'bg-[var(--red)]'
+  if (maxCapacity > 0 && totalBooked >= maxCapacity)        return 'bg-[var(--red)]'
+  if (maxCapacity > 0 && totalBooked / maxCapacity >= 0.8)  return 'bg-[var(--accent)]'
   return 'bg-[var(--green)]'
 }
 
@@ -83,7 +83,9 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
         </span>
         <span className="flex-1 font-semibold text-sm truncate">{cls.className}</span>
         <span className={`px-2 py-0.5 rounded-full text-xs font-bold text-white shrink-0 ${pill}`}>
-          {cls.totalBooked}/{cls.maxCapacity}
+          {visits !== null
+            ? visits.filter(v => !['LateCanceled', 'NoShow'].includes(v.status)).length
+            : '?'}
         </span>
       </div>
 

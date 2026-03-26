@@ -70,6 +70,7 @@ interface MboRawClass {
   TotalBooked?: number
   MaxCapacity?: number
   TotalBookedWaitlist?: number
+  WaitListSize?: number
 }
 
 export function mapClass(raw: MboRawClass) {
@@ -80,7 +81,7 @@ export function mapClass(raw: MboRawClass) {
     endTime:       raw.EndDateTime,
     totalBooked:   raw.TotalBooked ?? 0,
     maxCapacity:   raw.MaxCapacity ?? 0,
-    waitlistCount: raw.TotalBookedWaitlist ?? 0,
+    waitlistCount: raw.WaitListSize ?? raw.TotalBookedWaitlist ?? 0,
   }
 }
 
