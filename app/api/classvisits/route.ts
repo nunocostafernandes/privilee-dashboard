@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     // Batch-fetch client names using ClientIds (works with API key only)
     const clientIds = [...new Set(rawVisits.map(v => v.ClientId).filter(Boolean))]
-    let nameMap: Record<string, string> = {}
+    const nameMap: Record<string, string> = {}
 
     if (clientIds.length > 0) {
       const url = new URL(`https://api.mindbodyonline.com/public/v6/client/clients`)
