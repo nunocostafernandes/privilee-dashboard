@@ -9,6 +9,7 @@ interface Props {
   classes: ClassItem[] | null
   error: boolean
   siteId: string
+  studioName: string
   refreshKey: number
   privOnly: boolean
 }
@@ -25,7 +26,7 @@ function SkeletonCard() {
   )
 }
 
-export default function ClassGrid({ classes, error, siteId, refreshKey, privOnly }: Props) {
+export default function ClassGrid({ classes, error, siteId, studioName, refreshKey, privOnly }: Props) {
   if (error) {
     return (
       <p className="text-[var(--text-muted)] py-8 text-center">
@@ -53,7 +54,7 @@ export default function ClassGrid({ classes, error, siteId, refreshKey, privOnly
   return (
     <div className="space-y-2">
       {classes.map(cls => (
-        <ClassCard key={cls.classId} cls={cls} siteId={siteId} refreshKey={refreshKey} privOnly={privOnly} />
+        <ClassCard key={cls.classId} cls={cls} siteId={siteId} studioName={studioName} refreshKey={refreshKey} privOnly={privOnly} />
       ))}
     </div>
   )

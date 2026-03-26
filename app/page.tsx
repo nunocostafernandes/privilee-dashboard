@@ -125,6 +125,7 @@ export default function Home() {
           classes={loading ? null : (error ? [] : classes)}
           error={error}
           siteId={studio.siteId}
+          studioName={studio.name}
           refreshKey={refreshKey}
           privOnly={privOnly}
         />

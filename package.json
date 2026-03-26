@@ -12,12 +12,19 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "moduleNameMapper": { "^@/(.*)$": "<rootDir>/$1" },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    },
     "globals": {
-      "ts-jest": { "tsconfig": { "module": "commonjs" } }
+      "ts-jest": {
+        "tsconfig": {
+          "module": "commonjs"
+        }
+      }
     }
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.100.0",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18"
