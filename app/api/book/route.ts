@@ -108,16 +108,14 @@ async function sellPrivileeService(token: string, siteId: string, clientId: stri
     headers: headers(token, siteId),
     body: JSON.stringify({
       ClientId: clientId,
-      Cart: {
-        CartItems: [
-          {
-            Item: { Type: 'Service', Metadata: { Id: serviceId } },
-            Quantity: 1,
-            DiscountAmount: 0,
-          },
-        ],
-        Payments: [{ Type: 0, Metadata: { Amount: 0 } }],
-      },
+      Items: [
+        {
+          Item: { Type: 'Service', Metadata: { Id: serviceId } },
+          Quantity: 1,
+          DiscountAmount: 0,
+        },
+      ],
+      Payments: [{ Type: 0, Metadata: { Amount: 0 } }],
       Test: false,
       SendEmail: false,
     }),
