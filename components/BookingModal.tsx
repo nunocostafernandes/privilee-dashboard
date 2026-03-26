@@ -134,29 +134,6 @@ export default function BookingModal({ classId, className, startTime, siteId, st
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-1.5">First Name</label>
-                <input
-                  required
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  placeholder="Sara"
-                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-1.5">Last Name</label>
-                <input
-                  required
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  placeholder="Al Hashimi"
-                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
-                />
-              </div>
-            </div>
-
             <div className="relative" ref={dropdownRef}>
               <label className="block text-xs text-[var(--text-muted)] mb-1.5">Email</label>
               <input
@@ -184,6 +161,29 @@ export default function BookingModal({ classId, className, startTime, siteId, st
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-[var(--text-muted)] mb-1.5">First Name</label>
+                <input
+                  required
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  placeholder="Sara"
+                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--text-muted)] mb-1.5">Last Name</label>
+                <input
+                  required
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  placeholder="Al Hashimi"
+                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
+                />
+              </div>
             </div>
 
             <div>
