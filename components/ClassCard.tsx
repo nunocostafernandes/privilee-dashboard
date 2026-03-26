@@ -13,7 +13,7 @@ interface ClassItem {
   bookingCount: number
 }
 
-interface Visit { name: string; status: string; serviceName: string }
+interface Visit { clientId: string; name: string; status: string; serviceName: string }
 
 interface Props {
   cls: ClassItem
@@ -61,6 +61,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState(false)
   const [bookingOpen, setBookingOpen] = useState(false)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   useEffect(() => { setVisits(null) }, [refreshKey])
 
@@ -90,6 +91,28 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
   function handleAddClick(e: React.MouseEvent) {
     e.stopPropagation()
     setBookingOpen(true)
+  }
+
+  async function handleCancel(e: React.MouseEvent, clientId: string, lateCancel: boolean) {
+    e.stopPropagation()
+    setCancellingId(clientId)
+    try {
+      const res = await fetch('/api/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId: cls.classId, clientId, siteId, lateCancel }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error ?? 'Cancel failed')
+      } else {
+        setVisits(prev => prev ? prev.filter(v => v.clientId !== clientId) : prev)
+      }
+    } catch {
+      alert('Cancel failed')
+    } finally {
+      setCancellingId(null)
+    }
   }
 
   return (
@@ -142,17 +165,33 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
             {!loading && !error && displayedVisits && displayedVisits.length > 0 && (
               <ul className="space-y-2">
                 {displayedVisits.map((v, i) => (
-                  <li key={i} className="flex justify-between items-center text-sm">
-                    <div>
+                  <li key={i} className="flex justify-between items-center text-sm gap-2">
+                    <div className="min-w-0">
                       <span>{v.name}</span>
                       {v.serviceName
                         ? <span className="block text-xs text-[var(--text-muted)]">{v.serviceName}</span>
                         : <span className="block text-xs text-[var(--red)]">Unpaid</span>
                       }
                     </div>
-                    {past && (
-                      <span className={`shrink-0 ml-4 ${statusColor(v.status)}`}>{statusLabel(v.status)}</span>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {past && (
+                        <span className={statusColor(v.status)}>{statusLabel(v.status)}</span>
+                      )}
+                      {privOnly && cancellingId === v.clientId ? (
+                        <span className="text-xs text-[var(--text-muted)]">...</span>
+                      ) : privOnly && !['LateCanceled', 'NoShow'].includes(v.status) ? (
+                        <>
+                          <button
+                            onClick={e => handleCancel(e, v.clientId, false)}
+                            className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors px-1"
+                          >Early</button>
+                          <button
+                            onClick={e => handleCancel(e, v.clientId, true)}
+                            className="text-xs text-[var(--red)] hover:opacity-70 transition-opacity px-1"
+                          >Late</button>
+                        </>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>

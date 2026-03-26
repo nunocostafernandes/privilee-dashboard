@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
     }))
 
     const visits = rawVisits.map(v => ({
+      clientId:    v.ClientId ?? '',
       name:        nameMap[v.ClientId ?? ''] ?? v.ClientId ?? 'Client',
       status:      v.AppointmentStatus ?? 'Unknown',
       serviceName: v.ServiceName ?? '',
