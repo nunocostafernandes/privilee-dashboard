@@ -102,6 +102,15 @@ export default function Home() {
           <div className="flex items-center gap-3">
             {activeTab === 'classes' ? (
               <>
+                <a
+                  href="/faq"
+                  className="text-xs font-medium transition-colors"
+                  style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+                >
+                  Guide
+                </a>
                 <button
                   onClick={() => setActiveTab('history')}
                   className="text-xs font-medium transition-colors"
