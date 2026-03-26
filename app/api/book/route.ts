@@ -115,7 +115,7 @@ async function sellPrivileeService(token: string, siteId: string, clientId: stri
           DiscountAmount: 0,
         },
       ],
-      Payments: [{ Type: 'Comp', Metadata: { Amount: 0 } }],
+      Payments: [{ Type: 'Custom', Metadata: { Amount: 0, id: 18 } }],
       Test: false,
       SendEmail: false,
     }),
