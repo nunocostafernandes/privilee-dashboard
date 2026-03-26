@@ -4,6 +4,7 @@ import { mboFetch } from '@/lib/mbo-client'
 interface RawVisit {
   ClientId?: string
   AppointmentStatus?: string
+  ServiceName?: string
 }
 
 export async function GET(req: NextRequest) {
@@ -48,8 +49,9 @@ export async function GET(req: NextRequest) {
     }
 
     const visits = rawVisits.map(v => ({
-      name:   nameMap[v.ClientId ?? ''] ?? v.ClientId ?? 'Client',
-      status: v.AppointmentStatus ?? 'Unknown',
+      name:        nameMap[v.ClientId ?? ''] ?? v.ClientId ?? 'Client',
+      status:      v.AppointmentStatus ?? 'Unknown',
+      serviceName: v.ServiceName ?? '',
     }))
 
     return NextResponse.json(visits)

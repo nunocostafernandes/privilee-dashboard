@@ -11,7 +11,7 @@ interface ClassItem {
   waitlistCount: number
 }
 
-interface Visit { name: string; status: string }
+interface Visit { name: string; status: string; serviceName: string }
 
 interface Props {
   cls: ClassItem
@@ -83,9 +83,7 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
         </span>
         <span className="flex-1 font-semibold text-sm truncate">{cls.className}</span>
         <span className={`px-2 py-0.5 rounded-full text-xs font-bold text-white shrink-0 ${pill}`}>
-          {visits !== null
-            ? visits.filter(v => !['LateCanceled', 'NoShow'].includes(v.status)).length
-            : '?'}
+          {visits !== null ? visits.length : '?'}
         </span>
       </div>
 
@@ -110,11 +108,16 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
             <p className="text-[var(--text-muted)] text-sm">No bookings yet.</p>
           )}
           {!loading && !error && visits && visits.length > 0 && (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {visits.map((v, i) => (
-                <li key={i} className="flex justify-between text-sm">
-                  <span>{v.name}</span>
-                  <span className={statusColor(v.status)}>{statusLabel(v.status)}</span>
+                <li key={i} className="flex justify-between items-center text-sm">
+                  <div>
+                    <span>{v.name}</span>
+                    {v.serviceName && (
+                      <span className="block text-xs text-[var(--text-muted)]">{v.serviceName}</span>
+                    )}
+                  </div>
+                  <span className={`shrink-0 ml-4 ${statusColor(v.status)}`}>{statusLabel(v.status)}</span>
                 </li>
               ))}
             </ul>
