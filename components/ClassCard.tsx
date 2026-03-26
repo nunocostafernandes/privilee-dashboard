@@ -18,6 +18,7 @@ interface Props {
   cls: ClassItem
   siteId: string
   refreshKey: number
+  privOnly: boolean
 }
 
 function pillColor(totalBooked: number, maxCapacity: number, waitlistCount: number): string {
@@ -52,7 +53,7 @@ function isPastClass(startTime: string): boolean {
   return Date.now() > new Date(startTime).getTime() + GRACE_MS
 }
 
-export default function ClassCard({ cls, siteId, refreshKey }: Props) {
+export default function ClassCard({ cls, siteId, refreshKey, privOnly }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [visits, setVisits]     = useState<Visit[] | null>(null)
   const [loading, setLoading]   = useState(false)
@@ -62,6 +63,9 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
 
   const past = isPastClass(cls.startTime)
   const pill = past ? 'bg-[var(--text-muted)]' : pillColor(cls.totalBooked, cls.maxCapacity, cls.waitlistCount)
+  const displayedVisits = visits === null ? null
+    : privOnly ? visits.filter(v => v.serviceName.toLowerCase().includes('privilee'))
+    : visits
 
   async function toggle() {
     if (expanded) { setExpanded(false); return }
@@ -112,12 +116,14 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
               Could not load clients. Try refreshing.
             </p>
           )}
-          {!loading && !error && visits !== null && visits.length === 0 && (
-            <p className="text-[var(--text-muted)] text-sm">No bookings yet.</p>
+          {!loading && !error && displayedVisits !== null && displayedVisits.length === 0 && (
+            <p className="text-[var(--text-muted)] text-sm">
+              {privOnly && visits && visits.length > 0 ? 'No Privilee bookings for this class.' : 'No bookings yet.'}
+            </p>
           )}
-          {!loading && !error && visits && visits.length > 0 && (
+          {!loading && !error && displayedVisits && displayedVisits.length > 0 && (
             <ul className="space-y-2">
-              {visits.map((v, i) => (
+              {displayedVisits.map((v, i) => (
                 <li key={i} className="flex justify-between items-center text-sm">
                   <div>
                     <span>{v.name}</span>

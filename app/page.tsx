@@ -24,6 +24,7 @@ export default function Home() {
   const [refreshError, setRefreshError] = useState(false)
   const [lastUpdated, setLastUpdated]   = useState<Date | null>(null)
   const [refreshKey, setRefreshKey]     = useState(0)
+  const [privOnly, setPrivOnly]         = useState(true)
   const abortRef = useRef<AbortController | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -107,14 +108,26 @@ export default function Home() {
         <StudioTabs active={studio} onChange={setStudio} />
         <DateStrip active={date} onChange={setDate} />
 
-        <div className="mt-4">
-          <ClassGrid
-            classes={loading ? null : (error ? [] : classes)}
-            error={error}
-            siteId={studio.siteId}
-            refreshKey={refreshKey}
-          />
+        <div className="mt-4 flex justify-end mb-3">
+          <button
+            onClick={() => setPrivOnly(v => !v)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+              privOnly
+                ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                : 'bg-transparent border-[var(--border)] text-[var(--text-muted)]'
+            }`}
+          >
+            Privilee Only
+          </button>
         </div>
+
+        <ClassGrid
+          classes={loading ? null : (error ? [] : classes)}
+          error={error}
+          siteId={studio.siteId}
+          refreshKey={refreshKey}
+          privOnly={privOnly}
+        />
       </div>
     </div>
   )
