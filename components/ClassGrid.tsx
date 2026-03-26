@@ -2,7 +2,7 @@ import ClassCard from './ClassCard'
 
 interface ClassItem {
   classId: number; className: string; startTime: string; endTime: string
-  totalBooked: number; maxCapacity: number; waitlistCount: number
+  totalBooked: number; maxCapacity: number; waitlistCount: number; bookingCount: number
 }
 
 interface Props {
