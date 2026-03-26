@@ -127,9 +127,10 @@ export default function ClassCard({ cls, siteId, refreshKey, privOnly }: Props) 
                 <li key={i} className="flex justify-between items-center text-sm">
                   <div>
                     <span>{v.name}</span>
-                    {v.serviceName && (
-                      <span className="block text-xs text-[var(--text-muted)]">{v.serviceName}</span>
-                    )}
+                    {v.serviceName
+                      ? <span className="block text-xs text-[var(--text-muted)]">{v.serviceName}</span>
+                      : <span className="block text-xs text-[var(--red)]">Unpaid</span>
+                    }
                   </div>
                   {past && (
                     <span className={`shrink-0 ml-4 ${statusColor(v.status)}`}>{statusLabel(v.status)}</span>
