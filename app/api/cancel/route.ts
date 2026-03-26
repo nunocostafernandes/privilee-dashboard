@@ -37,7 +37,7 @@ function headers(token: string, siteId: string) {
 }
 
 async function voidPrivileeCredit(token: string, siteId: string, clientId: string): Promise<void> {
-  // Fetch client's active services
+  // Fetch client's active Privilee services
   const res = await fetch(
     `${MBO_BASE}/client/clientservices?clientId=${encodeURIComponent(clientId)}`,
     { headers: headers(token, siteId) }
@@ -45,22 +45,17 @@ async function voidPrivileeCredit(token: string, siteId: string, clientId: strin
   if (!res.ok) return // best-effort
 
   const data = await res.json()
-  const services: { Id: number; Name: string; ActiveDate: string }[] = data.ClientServices ?? []
+  const services: { Id: number; Name: string }[] = data.ClientServices ?? []
   const privileeServices = services.filter(s => s.Name.toLowerCase().includes('privilee'))
 
-  // Set expiration to same day as activation — service valid for 0 days, can't be used
-  await Promise.all(privileeServices.map(svc => {
-    const activeDate = svc.ActiveDate.split('T')[0] + 'T00:00:00'
-    return fetch(`${MBO_BASE}/client/updateclientservice`, {
+  // Set Count:0 — zeros out Remaining and marks Current:false (inactive)
+  await Promise.all(privileeServices.map(svc =>
+    fetch(`${MBO_BASE}/client/updateclientservice`, {
       method: 'POST',
       headers: headers(token, siteId),
-      body: JSON.stringify({
-        ClientId: clientId,
-        ServiceId: svc.Id,
-        ExpirationDate: activeDate,
-      }),
+      body: JSON.stringify({ ClientId: clientId, ServiceId: svc.Id, Count: 0 }),
     })
-  }))
+  ))
 }
 
 export async function POST(req: NextRequest) {
