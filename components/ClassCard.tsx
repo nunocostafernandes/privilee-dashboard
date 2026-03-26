@@ -46,6 +46,12 @@ function formatTime(dt: string): string {
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
+const GRACE_MS = 20 * 60 * 1000
+
+function isPastClass(startTime: string): boolean {
+  return Date.now() > new Date(startTime).getTime() + GRACE_MS
+}
+
 export default function ClassCard({ cls, siteId, refreshKey }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [visits, setVisits]     = useState<Visit[] | null>(null)
@@ -53,6 +59,9 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
   const [error, setError]       = useState(false)
 
   useEffect(() => { setVisits(null) }, [refreshKey])
+
+  const past = isPastClass(cls.startTime)
+  const pill = past ? 'bg-[var(--text-muted)]' : pillColor(cls.totalBooked, cls.maxCapacity, cls.waitlistCount)
 
   async function toggle() {
     if (expanded) { setExpanded(false); return }
@@ -71,11 +80,9 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
     }
   }
 
-  const pill = pillColor(cls.totalBooked, cls.maxCapacity, cls.waitlistCount)
-
   return (
     <div
-      className="bg-[var(--card)] rounded-xl overflow-hidden cursor-pointer hover:brightness-110 transition-all"
+      className={`bg-[var(--card)] rounded-xl overflow-hidden cursor-pointer hover:brightness-110 transition-all ${past ? 'opacity-40' : ''}`}
       onClick={toggle}
     >
       <div className="flex items-center px-4 py-3 gap-3">
@@ -118,7 +125,9 @@ export default function ClassCard({ cls, siteId, refreshKey }: Props) {
                       <span className="block text-xs text-[var(--text-muted)]">{v.serviceName}</span>
                     )}
                   </div>
-                  <span className={`shrink-0 ml-4 ${statusColor(v.status)}`}>{statusLabel(v.status)}</span>
+                  {past && (
+                    <span className={`shrink-0 ml-4 ${statusColor(v.status)}`}>{statusLabel(v.status)}</span>
+                  )}
                 </li>
               ))}
             </ul>
