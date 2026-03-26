@@ -62,7 +62,17 @@ export async function mboFetch(
   return res
 }
 
-export function mapClass(raw: any) {
+interface MboRawClass {
+  Id: number
+  ClassDescription?: { Name?: string }
+  StartDateTime: string
+  EndDateTime: string
+  TotalBooked?: number
+  MaxCapacity?: number
+  TotalBookedWaitlist?: number
+}
+
+export function mapClass(raw: MboRawClass) {
   return {
     classId:       raw.Id,
     className:     raw.ClassDescription?.Name ?? '',
@@ -74,7 +84,12 @@ export function mapClass(raw: any) {
   }
 }
 
-export function mapVisit(raw: any) {
+interface MboRawVisit {
+  Client?: { FirstName?: string; LastName?: string }
+  AppointmentStatus?: string
+}
+
+export function mapVisit(raw: MboRawVisit) {
   const first = raw.Client?.FirstName ?? ''
   const last  = raw.Client?.LastName?.charAt(0) ?? ''
   return {

@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
     const visits = (data.Visits ?? []).map(mapVisit)
 
     return NextResponse.json(visits)
-  } catch (err: any) {
-    const msg = err?.message?.includes('token') ? 'MBO auth unavailable' : 'MBO unavailable'
+  } catch (err: unknown) {
+    const msg = (err instanceof Error && err.message.includes('token')) ? 'MBO auth unavailable' : 'MBO unavailable'
     return NextResponse.json({ error: msg }, { status: 503 })
   }
 }

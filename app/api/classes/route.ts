@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const data = await res.json()
     const classes = (data.Classes ?? [])
       .map(mapClass)
-      .sort((a: any, b: any) => a.startTime.localeCompare(b.startTime))
+      .sort((a: { startTime: string }, b: { startTime: string }) => a.startTime.localeCompare(b.startTime))
 
     return NextResponse.json(classes)
   } catch {
