@@ -10,8 +10,42 @@ interface Booking {
   class_time: string
   client_name: string
   client_email: string
+  client_mobile: string | null
   notes: string | null
   created_at: string
+}
+
+function escapeCSV(val: string | null | undefined): string {
+  const s = val ?? ''
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`
+  }
+  return s
+}
+
+function downloadCSV(rows: Booking[]) {
+  const headers = ['Type', 'Client Name', 'Email', 'Mobile', 'Studio', 'Class', 'Class Date', 'Class Time', 'Notes', 'Recorded At']
+  const lines = rows.map(b => [
+    escapeCSV(TYPE_CONFIG[b.type]?.label ?? b.type),
+    escapeCSV(b.client_name),
+    escapeCSV(b.client_email),
+    escapeCSV(b.client_mobile),
+    escapeCSV(b.studio_name),
+    escapeCSV(b.class_name),
+    escapeCSV(b.class_date),
+    escapeCSV(b.class_time),
+    escapeCSV(b.notes),
+    escapeCSV(new Date(b.created_at).toLocaleString('en-GB')),
+  ].join(','))
+
+  const csv = [headers.join(','), ...lines].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `privilee-bookings-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -214,7 +248,7 @@ export default function StatsView() {
         })}
       </div>
 
-      {/* Search + studio filter */}
+      {/* Search + studio filter + download */}
       <div className="flex gap-2">
         <div className="relative flex-1 min-w-0">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }}>
@@ -249,6 +283,19 @@ export default function StatsView() {
             <option key={s} value={s}>{STUDIO_CONFIG[s]?.short ?? s}</option>
           ))}
         </select>
+        <button
+          onClick={() => downloadCSV(filtered)}
+          title="Download CSV"
+          className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)' }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          CSV
+        </button>
       </div>
 
       {/* Booking rows */}
