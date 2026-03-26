@@ -309,24 +309,30 @@ export default function StatsView() {
             return (
               <div
                 key={b.id}
-                className="rounded-xl px-4 pt-3 pb-2"
+                className="rounded-xl overflow-hidden"
                 style={{
                   background: 'var(--card)',
-                  border: `1px solid ${typeCfg ? typeCfg.color + '40' : 'var(--border)'}`,
+                  border: `1px solid var(--border)`,
+                  borderLeft: `3px solid ${typeCfg?.color ?? 'var(--border)'}`,
                 }}
               >
-                {/* Top row: client + class info */}
-                <div className="flex items-start justify-between gap-3 mb-2.5">
+                {/* Type header strip */}
+                <div
+                  className="px-4 py-1.5 flex items-center justify-between"
+                  style={{ background: typeCfg?.bg ?? 'transparent', borderBottom: '1px solid var(--border)' }}
+                >
+                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: typeCfg?.color }}>
+                    {typeCfg?.label ?? b.type}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {new Date(b.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                  </span>
+                </div>
+
+                {/* Client + class info */}
+                <div className="flex items-start justify-between gap-3 px-4 pt-2.5 mb-2.5">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{b.client_name}</p>
-                      <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
-                        style={{ color: typeCfg?.color ?? 'var(--text-muted)', background: typeCfg?.bg ?? 'var(--border)' }}
-                      >
-                        {typeCfg?.label ?? b.type}
-                      </span>
-                    </div>
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{b.client_name}</p>
                     <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{b.client_email}</p>
                   </div>
                   <div className="text-right shrink-0">
@@ -347,7 +353,7 @@ export default function StatsView() {
                 </div>
 
                 {/* Notes — full width, always visible */}
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+                <div className="px-4 pb-2" style={{ borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
                   <NoteCell booking={b} onSave={handleNoteSave} />
                 </div>
               </div>
