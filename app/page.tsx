@@ -27,6 +27,7 @@ export default function Home() {
   const [refreshKey, setRefreshKey]     = useState(0)
   const [privOnly, setPrivOnly]         = useState(true)
   const [activeTab, setActiveTab]       = useState<'classes' | 'history'>('classes')
+  const [dayStats, setDayStats]         = useState<Record<string, { total: number; privilee: number }>>({})
   const abortRef = useRef<AbortController | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -82,6 +83,14 @@ export default function Home() {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [fetchClasses])
+
+  useEffect(() => {
+    const startDate = toDateString(new Date())
+    fetch(`/api/daystats?siteId=${studio.siteId}&startDate=${startDate}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setDayStats(data) })
+      .catch(() => {})
+  }, [studio])
 
   function handleRefresh() {
     fetchClasses(false)
@@ -156,7 +165,7 @@ export default function Home() {
             <div className="mb-4">
               <StudioTabs active={studio} onChange={setStudio} />
             </div>
-            <DateStrip active={date} onChange={setDate} />
+            <DateStrip active={date} onChange={setDate} dayStats={dayStats} />
 
             <div className="mt-4 flex justify-end mb-3">
               <button
