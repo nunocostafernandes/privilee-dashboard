@@ -2,15 +2,10 @@
 import { useEffect, useState } from 'react'
 import { getDateStrip, formatDateLabel, toDateString, msUntilMidnight } from '@/lib/date-utils'
 
-interface DayStats {
-  total: number
-  privilee: number
-}
-
 interface Props {
   active: string // YYYY-MM-DD
   onChange: (date: string) => void
-  dayStats?: Record<string, DayStats>
+  dayStats?: Record<string, number>
 }
 
 export default function DateStrip({ active, onChange, dayStats }: Props) {
@@ -37,7 +32,7 @@ export default function DateStrip({ active, onChange, dayStats }: Props) {
       {strip.map((date) => {
         const ds = toDateString(date)
         const isActive = ds === active
-        const stats = dayStats?.[ds]
+        const count = dayStats?.[ds] ?? 0
         return (
           <button
             key={ds}
@@ -56,7 +51,7 @@ export default function DateStrip({ active, onChange, dayStats }: Props) {
                 className="text-[10px] font-medium mt-0.5 leading-none"
                 style={{ color: isActive ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}
               >
-                {stats ? `${stats.total} · ${stats.privilee}P` : '·'}
+                {count > 0 ? `${count}P` : '--'}
               </span>
             )}
           </button>

@@ -27,7 +27,7 @@ export default function Home() {
   const [refreshKey, setRefreshKey]     = useState(0)
   const [privOnly, setPrivOnly]         = useState(true)
   const [activeTab, setActiveTab]       = useState<'classes' | 'history'>('classes')
-  const [dayStats, setDayStats]         = useState<Record<string, { total: number; privilee: number }>>({})
+  const [dayStats, setDayStats]         = useState<Record<string, number>>({})
   const abortRef = useRef<AbortController | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 

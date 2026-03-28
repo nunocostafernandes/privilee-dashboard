@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { mboFetch, mapClass } from '@/lib/mbo-client'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,23 +19,6 @@ export async function GET(req: NextRequest) {
     return d.toISOString().slice(0, 10)
   })
   const endDate = dates[5]
-
-  // MBO: fetch all classes for the 6-day window, sum TotalBooked per day
-  const mboTotal: Record<string, number> = {}
-  try {
-    const res = await mboFetch('/class/classes', siteId, {
-      StartDateTime: `${startDate}T00:00:00`,
-      EndDateTime:   `${endDate}T23:59:59`,
-    })
-    if (res.ok) {
-      const data = await res.json()
-      for (const raw of data.Classes ?? []) {
-        const cls = mapClass(raw)
-        const day = cls.startTime.slice(0, 10)
-        mboTotal[day] = (mboTotal[day] ?? 0) + cls.totalBooked
-      }
-    }
-  } catch { /* non-fatal */ }
 
   // Supabase: count Privilee bookings (type='booking') by class_date for this studio
   const privCount: Record<string, number> = {}
@@ -58,9 +40,9 @@ export async function GET(req: NextRequest) {
     }
   } catch { /* non-fatal */ }
 
-  const result: Record<string, { total: number; privilee: number }> = {}
+  const result: Record<string, number> = {}
   for (const d of dates) {
-    result[d] = { total: mboTotal[d] ?? 0, privilee: privCount[d] ?? 0 }
+    result[d] = privCount[d] ?? 0
   }
 
   return NextResponse.json(result)
