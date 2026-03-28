@@ -12,6 +12,7 @@ interface Booking {
   class_time: string
   client_name: string
   client_email: string
+  created_at: string
 }
 
 export async function GET() {
@@ -22,7 +23,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('privilee_bookings')
-    .select('id, type, studio_name, class_name, class_date, class_time, client_name, client_email')
+    .select('id, type, studio_name, class_name, class_date, class_time, client_name, client_email, created_at')
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -75,7 +76,7 @@ export async function GET() {
     .map(([studio, count]) => ({ studio, count }))
     .sort((a, b) => b.count - a.count)
 
-  // Time distribution
+  // Time distribution (class times)
   const timeMap: Record<string, number> = {}
   for (const b of bookings) {
     timeMap[b.class_time] = (timeMap[b.class_time] ?? 0) + 1
@@ -115,12 +116,50 @@ export async function GET() {
     latePct: totalCancels > 0 ? Math.round((lateCount / totalCancels) * 1000) / 10 : 0,
   }
 
+  // Booking lead time (days between created_at and class_date)
+  const leadBuckets: Record<string, number> = {
+    'Same day': 0,
+    '1 day ahead': 0,
+    '2-3 days ahead': 0,
+    '4+ days ahead': 0,
+  }
+  for (const b of bookings) {
+    const created = new Date(b.created_at)
+    const classDay = new Date(b.class_date + 'T00:00:00Z')
+    const createdDay = new Date(created.toISOString().slice(0, 10) + 'T00:00:00Z')
+    const diff = Math.round((classDay.getTime() - createdDay.getTime()) / (1000 * 60 * 60 * 24))
+    if (diff <= 0) leadBuckets['Same day']++
+    else if (diff === 1) leadBuckets['1 day ahead']++
+    else if (diff <= 3) leadBuckets['2-3 days ahead']++
+    else leadBuckets['4+ days ahead']++
+  }
+  const leadTime = Object.entries(leadBuckets).map(([label, count]) => ({
+    label,
+    count,
+    pct: totalBookings > 0 ? Math.round((count / totalBookings) * 1000) / 10 : 0,
+  }))
+
+  // Booking activity by hour (Dubai time UTC+4)
+  const hourMap: Record<number, number> = {}
+  for (const b of bookings) {
+    const utcHour = new Date(b.created_at).getUTCHours()
+    const dubaiHour = (utcHour + 4) % 24
+    hourMap[dubaiHour] = (hourMap[dubaiHour] ?? 0) + 1
+  }
+  const bookingActivity = Array.from({ length: 24 }, (_, h) => ({
+    hour: h,
+    label: `${h === 0 ? '12' : h > 12 ? h - 12 : h}${h < 12 ? 'am' : 'pm'}`,
+    count: hourMap[h] ?? 0,
+  })).filter(h => h.count > 0)
+
   return NextResponse.json({
     kpis: { totalBookings, uniqueClients, cancelRate, repeatRate },
     dailyTrend,
     studioSplit,
-    timeDistribution,
     classRanking,
+    timeDistribution,
+    bookingActivity,
+    leadTime,
     cancellationBreakdown,
     repeatClients,
   })
