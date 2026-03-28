@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
 
-let cachedToken: string | null = null
-let tokenExpiry = 0
+const tokenCache: Record<string, { token: string; expiry: number }> = {}
 
 async function getStaffToken(siteId: string): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken
+  const cached = tokenCache[siteId]
+  if (cached && Date.now() < cached.expiry) return cached.token
 
   const res = await fetch(`${MBO_BASE}/usertoken/issue`, {
     method: 'POST',
@@ -22,9 +22,8 @@ async function getStaffToken(siteId: string): Promise<string> {
   })
   if (!res.ok) throw new Error('MBO staff authentication failed')
   const data = await res.json()
-  cachedToken = data.AccessToken
-  tokenExpiry = Date.now() + 6 * 60 * 60 * 1000
-  return cachedToken!
+  tokenCache[siteId] = { token: data.AccessToken, expiry: Date.now() + 6 * 60 * 60 * 1000 }
+  return data.AccessToken
 }
 
 export async function GET(req: NextRequest) {

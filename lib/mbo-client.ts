@@ -1,18 +1,18 @@
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
 const TOKEN_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
 
-let cachedToken: string | null = null
-let tokenExpiresAt = 0
+const tokenCache: Record<string, { token: string; expiry: number }> = {}
 
-async function getUserToken(): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken
+async function getUserToken(siteId: string): Promise<string> {
+  const cached = tokenCache[siteId]
+  if (cached && Date.now() < cached.expiry) return cached.token
 
   const res = await fetch(`${MBO_BASE}/usertoken/issue`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Api-Key': process.env.MBO_API_KEY!,
-      'SiteId': '-99',
+      'SiteId': siteId,
     },
     body: JSON.stringify({
       Username: process.env.MBO_USERNAME!,
@@ -23,9 +23,8 @@ async function getUserToken(): Promise<string> {
   if (!res.ok) throw new Error(`MBO token issue failed: ${res.status}`)
 
   const data = await res.json()
-  cachedToken = data.AccessToken
-  tokenExpiresAt = Date.now() + TOKEN_TTL_MS
-  return cachedToken!
+  tokenCache[siteId] = { token: data.AccessToken, expiry: Date.now() + TOKEN_TTL_MS }
+  return data.AccessToken
 }
 
 export async function mboFetch(
@@ -44,7 +43,7 @@ export async function mboFetch(
       'SiteId': siteId,
     }
     if (needsUserToken) {
-      const token = await getUserToken()
+      const token = await getUserToken(siteId)
       headers['Authorization'] = `Bearer ${token}`
     }
     return headers
@@ -54,8 +53,7 @@ export async function mboFetch(
 
   // On 401: clear cached token and retry once
   if (res.status === 401 && needsUserToken) {
-    cachedToken = null
-    tokenExpiresAt = 0
+    delete tokenCache[siteId]
     res = await fetch(url.toString(), { headers: await buildHeaders() })
   }
 
