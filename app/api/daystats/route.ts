@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { mboFetch, mapClass } from '@/lib/mbo-client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   const siteId    = req.nextUrl.searchParams.get('siteId')
   const startDate = req.nextUrl.searchParams.get('startDate')

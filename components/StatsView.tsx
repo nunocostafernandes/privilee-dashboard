@@ -181,7 +181,7 @@ export default function StatsView() {
   const [studioFilter, setStudioFilter] = useState('All')
 
   useEffect(() => {
-    fetch('/api/bookings')
+    fetch('/api/bookings', { cache: 'no-store' })
       .then(r => r.json())
       .then(data => { setBookings(data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })

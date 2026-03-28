@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { mboFetch, mapClass } from '@/lib/mbo-client'
 
+export const dynamic = 'force-dynamic'
+
 async function fetchVisitCount(classId: number, siteId: string): Promise<number> {
   try {
     const res = await mboFetch('/class/classvisits', siteId, { ClassID: String(classId) })
