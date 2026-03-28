@@ -3,11 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
 
-let cachedToken: string | null = null
-let tokenExpiry = 0
+const tokenCache: Record<string, { token: string; expiry: number }> = {}
 
 async function getStaffToken(siteId: string): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken
+  const cached = tokenCache[siteId]
+  if (cached && Date.now() < cached.expiry) return cached.token
 
   const res = await fetch(`${MBO_BASE}/usertoken/issue`, {
     method: 'POST',
@@ -23,9 +23,8 @@ async function getStaffToken(siteId: string): Promise<string> {
   })
   if (!res.ok) throw new Error('MBO staff authentication failed')
   const data = await res.json()
-  cachedToken = data.AccessToken
-  tokenExpiry = Date.now() + 6 * 60 * 60 * 1000
-  return cachedToken!
+  tokenCache[siteId] = { token: data.AccessToken, expiry: Date.now() + 6 * 60 * 60 * 1000 }
+  return data.AccessToken
 }
 
 function headers(token: string, siteId: string) {
@@ -100,6 +99,23 @@ export async function POST(req: NextRequest) {
       const d = startTime ? new Date(startTime) : new Date()
       const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       const classTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+
+      // Look up email/mobile from the original booking
+      let clientEmail = ''
+      let clientMobile: string | null = null
+      const { data: original } = await supabase
+        .from('privilee_bookings')
+        .select('client_email, client_mobile')
+        .eq('client_id', clientId)
+        .eq('type', 'booking')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      if (original) {
+        clientEmail = original.client_email ?? ''
+        clientMobile = original.client_mobile ?? null
+      }
+
       await supabase.from('privilee_bookings').insert({
         type:           lateCancel ? 'late_cancel' : 'early_cancel',
         studio_name:    studioName ?? '',
@@ -110,15 +126,15 @@ export async function POST(req: NextRequest) {
         class_time:     classTime,
         client_id:      clientId,
         client_name:    clientName ?? '',
-        client_email:   '',
+        client_email:   clientEmail,
+        client_mobile:  clientMobile,
       })
     } catch { /* non-fatal */ }
 
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
     if (err instanceof Error && err.message.includes('authentication')) {
-      cachedToken = null
-      tokenExpiry = 0
+      Object.keys(tokenCache).forEach(k => delete tokenCache[k])
     }
     const message = err instanceof Error ? err.message : 'Cancel failed'
     return NextResponse.json({ error: message }, { status: 500 })
