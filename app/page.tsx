@@ -131,6 +131,13 @@ export default function Home() {
               {activeTab === 'classes' && (
                 <>
                   <a
+                    href="/insights"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-[var(--card)]"
+                    style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+                  >
+                    Insights
+                  </a>
+                  <a
                     href="/faq"
                     className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-[var(--card)]"
                     style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
