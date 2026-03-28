@@ -23,17 +23,18 @@ interface Props {
   privOnly: boolean
 }
 
-function pillColor(totalBooked: number, maxCapacity: number, waitlistCount: number): string {
-  if (waitlistCount > 0)                                    return 'bg-[var(--red)]'
-  if (maxCapacity > 0 && totalBooked >= maxCapacity)        return 'bg-[var(--red)]'
-  if (maxCapacity > 0 && totalBooked / maxCapacity >= 0.8)  return 'bg-[var(--accent)]'
-  return 'bg-[var(--green)]'
+function pillStyle(totalBooked: number, maxCapacity: number, waitlistCount: number): { bg: string; color: string } {
+  if (waitlistCount > 0 || (maxCapacity > 0 && totalBooked >= maxCapacity))
+    return { bg: 'var(--red-muted)', color: 'var(--red)' }
+  if (maxCapacity > 0 && totalBooked / maxCapacity >= 0.8)
+    return { bg: 'var(--accent-glow)', color: 'var(--accent)' }
+  return { bg: 'var(--green-muted)', color: 'var(--green)' }
 }
 
 function statusColor(status: string): string {
-  if (status === 'Waitlisted') return 'text-[var(--text-orange)]'
-  if (['LateCanceled', 'NoShow', 'Unknown'].includes(status)) return 'text-[var(--text-muted)]'
-  return 'text-[var(--text)]'
+  if (status === 'Waitlisted') return 'var(--accent)'
+  if (['LateCanceled', 'NoShow', 'Unknown'].includes(status)) return 'var(--text-muted)'
+  return 'var(--green)'
 }
 
 function statusLabel(status: string): string {
@@ -66,7 +67,9 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
   useEffect(() => { setVisits(null) }, [refreshKey])
 
   const past = isPastClass(cls.startTime)
-  const pill = past ? 'bg-[var(--text-muted)]' : pillColor(cls.totalBooked, cls.maxCapacity, cls.waitlistCount)
+  const pill = past
+    ? { bg: 'rgba(100,116,139,0.1)', color: 'var(--text-muted)' }
+    : pillStyle(cls.totalBooked, cls.maxCapacity, cls.waitlistCount)
   const displayedVisits = visits === null ? null
     : privOnly ? visits.filter(v => v.serviceName.toLowerCase().includes('privilee'))
     : visits
@@ -122,78 +125,125 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
   return (
     <>
       <div
-        className={`bg-[var(--card)] rounded-xl overflow-hidden cursor-pointer hover:brightness-110 transition-all ${past ? 'opacity-40' : ''}`}
+        className="rounded-xl overflow-hidden cursor-pointer transition-all"
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          opacity: past ? 0.35 : 1,
+        }}
         onClick={toggle}
       >
-        <div className="flex items-center px-4 py-3 gap-3">
-          <span className="text-[var(--text-muted)] text-sm w-24 shrink-0">
+        <div className="flex items-center px-4 py-3.5 gap-3">
+          {/* Time */}
+          <span
+            className="text-xs font-semibold w-[72px] shrink-0 tabular-nums"
+            style={{ color: 'var(--text-muted)' }}
+          >
             {formatTime(cls.startTime)}
           </span>
+
+          {/* Class name */}
           <span className="flex-1 font-semibold text-sm truncate">{cls.className}</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-bold text-white shrink-0 ${pill}`}>
+
+          {/* Count pill */}
+          <span
+            className="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 tabular-nums"
+            style={{ background: pill.bg, color: pill.color }}
+          >
             {visits !== null ? visits.length : cls.bookingCount}
           </span>
+
+          {/* Add button */}
           {!past && (
             <button
               onClick={handleAddClick}
-              className="w-6 h-6 rounded-full bg-[var(--accent)] text-white text-sm font-bold flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all cursor-pointer"
+              style={{
+                background: 'var(--accent-glow)',
+                color: 'var(--accent)',
+                border: '1px solid rgba(249,115,22,0.3)',
+              }}
               title="Add Privilee client"
             >
-              +
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
             </button>
           )}
+
+          {/* Chevron */}
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round"
+            className="shrink-0 transition-transform duration-200"
+            style={{
+              color: 'var(--text-muted)',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+          >
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         </div>
 
+        {/* Expanded visits */}
         <div
           className="overflow-hidden transition-all duration-300"
           style={{ maxHeight: expanded ? '999px' : '0' }}
         >
-          <div className="border-t border-[var(--border)] px-4 py-3">
+          <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
             {loading && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {[1,2,3].map(i => (
-                  <div key={i} className="h-4 rounded bg-[var(--skeleton)] animate-pulse" />
+                  <div key={i} className="h-4 rounded-lg animate-pulse" style={{ background: 'var(--skeleton)', width: `${80 - i * 15}%` }} />
                 ))}
               </div>
             )}
             {error && (
-              <p className="text-[var(--text-muted)] text-sm">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 Could not load clients. Try refreshing.
               </p>
             )}
             {!loading && !error && displayedVisits !== null && displayedVisits.length === 0 && (
-              <p className="text-[var(--text-muted)] text-sm">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {privOnly && visits && visits.length > 0 ? 'No Privilee bookings for this class.' : 'No bookings yet.'}
               </p>
             )}
             {!loading && !error && displayedVisits && displayedVisits.length > 0 && (
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {displayedVisits.map((v, i) => (
-                  <li key={i} className="flex justify-between items-center text-sm gap-2">
+                  <li
+                    key={i}
+                    className="flex justify-between items-center py-2 px-2 rounded-lg transition-colors"
+                    style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}
+                  >
                     <div className="min-w-0">
-                      <span>{v.name}</span>
+                      <span className="text-sm font-medium">{v.name}</span>
                       {v.serviceName
-                        ? <span className="block text-xs text-[var(--text-muted)]">{v.serviceName}</span>
-                        : <span className="block text-xs text-[var(--red)]">Unpaid</span>
+                        ? <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>{v.serviceName}</span>
+                        : <span className="block text-xs" style={{ color: 'var(--red)' }}>Unpaid</span>
                       }
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {past && (
-                        <span className={statusColor(v.status)}>{statusLabel(v.status)}</span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-md" style={{ color: statusColor(v.status), background: 'rgba(255,255,255,0.04)' }}>
+                          {statusLabel(v.status)}
+                        </span>
                       )}
                       {privOnly && cancellingId === v.clientId ? (
-                        <span className="text-xs text-[var(--text-muted)]">...</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
                       ) : privOnly && !['LateCanceled', 'NoShow'].includes(v.status) ? (
-                        <>
+                        <div className="flex gap-1">
                           <button
                             onClick={e => handleCancel(e, v.clientId, false)}
-                            className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors px-1"
+                            className="text-xs font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                            style={{ color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)' }}
                           >Early</button>
                           <button
                             onClick={e => handleCancel(e, v.clientId, true)}
-                            className="text-xs text-[var(--red)] hover:opacity-70 transition-opacity px-1"
+                            className="text-xs font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                            style={{ color: 'var(--red)', background: 'var(--red-muted)' }}
                           >Late</button>
-                        </>
+                        </div>
                       ) : null}
                     </div>
                   </li>

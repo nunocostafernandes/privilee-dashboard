@@ -20,25 +20,30 @@ export default function RefreshButton({ onRefresh, loading, lastUpdated }: Props
   }, [lastUpdated])
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       {lastUpdated && (
-        <span className="text-xs text-[var(--text-muted)]">
-          {minutesAgo === 0 ? 'just now' : `${minutesAgo} min ago`}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--green)' }} />
+          <span className="text-[10px] font-medium tabular-nums" style={{ color: 'var(--text-muted)' }}>
+            {minutesAgo === 0 ? 'Live' : `${minutesAgo}m ago`}
+          </span>
+        </div>
       )}
       <button
         onClick={onRefresh}
         disabled={loading}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-semibold transition-colors disabled:opacity-60"
+        className="w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-40 cursor-pointer"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        title="Refresh"
       >
         <svg
-          className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+          className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          style={{ color: 'var(--text-muted)' }}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
-        Refresh
       </button>
     </div>
   )

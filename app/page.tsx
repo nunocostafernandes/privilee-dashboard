@@ -100,81 +100,95 @@ export default function Home() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-widest mb-0.5">Privilee Dashboard</p>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {activeTab === 'classes' ? studio.name : 'History'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            {activeTab === 'classes' ? (
-              <>
-                <a
-                  href="/faq"
-                  className="text-xs font-medium transition-colors"
-                  style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-                >
-                  Guide
-                </a>
+      <div className="max-w-3xl mx-auto px-4 pt-6 pb-10">
+
+        {/* Header */}
+        <header className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {activeTab === 'history' && (
                 <button
-                  onClick={() => setActiveTab('history')}
-                  className="text-xs font-medium transition-colors"
+                  onClick={() => setActiveTab('classes')}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--card)]"
                   style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                 >
-                  History
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m15 18-6-6 6-6"/>
+                  </svg>
                 </button>
-                <RefreshButton
-                  onRefresh={handleRefresh}
-                  loading={loading || backgroundLoading}
-                  lastUpdated={lastUpdated}
-                />
-              </>
-            ) : (
-              <button
-                onClick={() => setActiveTab('classes')}
-                className="flex items-center gap-1.5 text-xs font-medium transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m15 18-6-6 6-6"/>
-                </svg>
-                Classes
-              </button>
-            )}
+              )}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1" style={{ color: 'var(--accent)' }}>
+                  Privilee Dashboard
+                </p>
+                <h1 className="text-xl font-bold tracking-tight leading-none">
+                  {activeTab === 'classes' ? studio.name : 'History'}
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {activeTab === 'classes' && (
+                <>
+                  <a
+                    href="/faq"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-[var(--card)]"
+                    style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+                  >
+                    Guide
+                  </a>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-[var(--card)]"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    History
+                  </button>
+                  <RefreshButton
+                    onRefresh={handleRefresh}
+                    loading={loading || backgroundLoading}
+                    lastUpdated={lastUpdated}
+                  />
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </header>
 
         {activeTab === 'history' ? (
           <StatsView />
         ) : (
           <>
             {refreshError && (
-              <div className="mb-4 px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--red)] text-sm text-[var(--text-muted)]">
-                Refresh failed — showing last data
+              <div
+                className="mb-4 px-4 py-2.5 rounded-xl text-sm flex items-center gap-2"
+                style={{ background: 'var(--red-muted)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Refresh failed -- showing last data
               </div>
             )}
 
-            <div className="mb-4">
-              <StudioTabs active={studio} onChange={setStudio} />
-            </div>
-            <DateStrip active={date} onChange={setDate} dayStats={dayStats} />
+            <StudioTabs active={studio} onChange={setStudio} />
 
-            <div className="mt-4 flex justify-end mb-3">
+            <div className="mt-3">
+              <DateStrip active={date} onChange={setDate} dayStats={dayStats} />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between mb-3">
+              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                {classes !== null && !loading ? `${classes.length} classes` : ''}
+              </span>
               <button
                 onClick={() => setPrivOnly(v => !v)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                  privOnly
-                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
-                    : 'bg-transparent border-[var(--border)] text-[var(--text-muted)]'
-                }`}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                style={{
+                  background: privOnly ? 'var(--accent-glow)' : 'transparent',
+                  color: privOnly ? 'var(--accent)' : 'var(--text-muted)',
+                  border: `1px solid ${privOnly ? 'var(--accent)' : 'var(--border)'}`,
+                }}
               >
                 Privilee Only
               </button>

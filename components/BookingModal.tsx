@@ -92,50 +92,72 @@ export default function BookingModal({ classId, className, startTime, siteId, st
     }
   }
 
+  const inputStyle = {
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    color: 'var(--text)',
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
-        className="bg-[var(--card)] rounded-2xl w-full max-w-md p-6 shadow-2xl"
+        className="w-full max-w-md rounded-2xl p-6"
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between mb-5">
+        <div className="flex items-start justify-between mb-6">
           <div>
             <h2 className="font-bold text-base">{className}</h2>
-            <p className="text-[var(--text-muted)] text-sm mt-0.5">{studioName} · {formatTime(startTime)}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              {studioName} &middot; {formatTime(startTime)}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text)] text-2xl leading-none ml-4 -mt-1"
+            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+            style={{ color: 'var(--text-muted)', background: 'var(--surface)' }}
           >
-            ×
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
 
         {status === 'success' ? (
           <div className="text-center py-6">
-            <div className="w-12 h-12 rounded-full bg-[var(--green)] flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'var(--green-muted)' }}
+            >
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ color: 'var(--green)' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <p className="font-bold text-base">{bookedName}</p>
-            <p className="text-[var(--text-muted)] text-sm mt-1">Booked into {className}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Booked into {className}</p>
             <button
               onClick={onClose}
-              className="mt-5 w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-semibold text-sm"
+              className="mt-6 w-full py-3 rounded-xl font-semibold text-sm transition-all cursor-pointer"
+              style={{ background: 'var(--accent)', color: '#fff' }}
             >
               Done
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative" ref={dropdownRef}>
-              <label className="block text-xs text-[var(--text-muted)] mb-1.5">Email</label>
+              <label className="block text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Email
+              </label>
               <input
                 required
                 type="email"
@@ -144,19 +166,28 @@ export default function BookingModal({ classId, className, startTime, siteId, st
                 onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                 placeholder="sara@example.com"
                 autoComplete="off"
-                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+                style={inputStyle}
               />
               {showSuggestions && (
-                <div className="absolute z-10 w-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden">
+                <div
+                  className="absolute z-10 w-full mt-1.5 rounded-xl overflow-hidden"
+                  style={{
+                    background: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.4)',
+                  }}
+                >
                   {suggestions.map(c => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => selectSuggestion(c)}
-                      className="w-full text-left px-3 py-2.5 hover:bg-[var(--bg)] transition-colors border-b border-[var(--border)] last:border-0"
+                      className="w-full text-left px-3.5 py-2.5 transition-colors cursor-pointer"
+                      style={{ borderBottom: '1px solid var(--border)' }}
                     >
                       <span className="block text-sm font-medium">{c.firstName} {c.lastName}</span>
-                      <span className="block text-xs text-[var(--text-muted)]">{c.email}</span>
+                      <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>{c.email}</span>
                     </button>
                   ))}
                 </div>
@@ -165,46 +196,64 @@ export default function BookingModal({ classId, className, startTime, siteId, st
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-1.5">First Name</label>
+                <label className="block text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  First Name
+                </label>
                 <input
                   required
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   placeholder="Sara"
-                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-1.5">Last Name</label>
+                <label className="block text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Last Name
+                </label>
                 <input
                   required
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   placeholder="Al Hashimi"
-                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+                  style={inputStyle}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-[var(--text-muted)] mb-1.5">Mobile</label>
+              <label className="block text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Mobile
+              </label>
               <input
                 required
                 value={mobile}
                 onChange={e => setMobile(e.target.value)}
                 placeholder="+971 50 000 0000"
-                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+                style={inputStyle}
               />
             </div>
 
             {status === 'error' && (
-              <p className="text-[var(--red)] text-xs px-1">{errorMsg}</p>
+              <div
+                className="px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2"
+                style={{ background: 'var(--red-muted)', color: 'var(--red)' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {errorMsg}
+              </div>
             )}
 
             <button
               type="submit"
               disabled={status === 'loading'}
-              className="w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-semibold text-sm disabled:opacity-50 transition-opacity mt-1"
+              className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-50 transition-all cursor-pointer"
+              style={{ background: 'var(--accent)', color: '#fff' }}
             >
               {status === 'loading' ? 'Booking...' : 'Book Class'}
             </button>

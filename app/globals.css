@@ -4,20 +4,60 @@
 
 :root {
   --bg: #0a0a0c;
-  --card: #1a1a1e;
+  --card: #141417;
+  --card-hover: #1c1c20;
   --accent: #f97316;
   --accent-hover: #ea6c0a;
+  --accent-glow: rgba(249, 115, 22, 0.15);
   --text: #f1f5f9;
   --text-muted: #64748b;
   --text-orange: #f97316;
-  --border: #2a2a2e;
-  --skeleton: #252529;
+  --border: #222226;
+  --border-subtle: #1c1c20;
+  --skeleton: #1e1e22;
   --green: #22c55e;
+  --green-muted: rgba(34, 197, 94, 0.12);
   --red: #ef4444;
+  --red-muted: rgba(239, 68, 68, 0.12);
+  --surface: #111114;
 }
 
 body {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-montserrat), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Focus ring for keyboard nav */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Pulse animation for live indicator */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
 }

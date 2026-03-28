@@ -28,7 +28,7 @@ export default function DateStrip({ active, onChange, dayStats }: Props) {
   const hasStats = dayStats && Object.keys(dayStats).length > 0
 
   return (
-    <div className="flex gap-2 py-3 px-1 overflow-x-auto">
+    <div className="flex gap-1.5 py-2 overflow-x-auto">
       {strip.map((date) => {
         const ds = toDateString(date)
         const isActive = ds === active
@@ -37,19 +37,23 @@ export default function DateStrip({ active, onChange, dayStats }: Props) {
           <button
             key={ds}
             onClick={() => onChange(ds)}
-            className={`flex flex-col items-center whitespace-nowrap transition-colors ${
-              hasStats ? 'px-3 py-2 rounded-xl min-w-[60px]' : 'px-4 py-2 rounded-full'
-            } ${
-              isActive
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--card)]'
-            }`}
+            className="flex-1 flex flex-col items-center py-2.5 px-1 rounded-xl transition-all cursor-pointer min-w-[56px]"
+            style={{
+              background: isActive ? 'var(--accent)' : 'var(--surface)',
+              border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+              boxShadow: isActive ? '0 2px 8px rgba(249,115,22,0.25)' : 'none',
+              color: isActive ? '#fff' : 'var(--text-muted)',
+            }}
           >
-            <span className="text-sm font-semibold">{formatDateLabel(date, today)}</span>
+            <span className="text-xs font-semibold">{formatDateLabel(date, today)}</span>
             {hasStats && (
               <span
-                className="text-[10px] font-medium mt-0.5 leading-none"
-                style={{ color: isActive ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}
+                className="text-[10px] font-bold mt-1 tabular-nums"
+                style={{
+                  color: isActive
+                    ? 'rgba(255,255,255,0.8)'
+                    : count > 0 ? 'var(--accent)' : 'var(--text-muted)',
+                }}
               >
                 {count > 0 ? `${count}P` : '--'}
               </span>
