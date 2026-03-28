@@ -126,7 +126,7 @@ async function sellPrivileeService(token: string, siteId: string, clientId: stri
 }
 
 async function getClientPrivileeServiceId(
-  token: string, siteId: string, clientId: string, serviceId: number
+  token: string, siteId: string, clientId: string
 ): Promise<number | null> {
   try {
     const res = await fetch(
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
     await sellPrivileeService(token, siteId, clientId, serviceId)
 
     // 5. Find the Privilee ClientServiceId so MBO uses it (not another active package)
-    const clientServiceId = await getClientPrivileeServiceId(token, siteId, clientId, serviceId)
+    const clientServiceId = await getClientPrivileeServiceId(token, siteId, clientId)
 
     // 6. Book class with the Privilee service pinned
     const bookingId = await bookClass(token, siteId, classId, clientId, clientServiceId)
