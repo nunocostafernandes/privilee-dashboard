@@ -11,12 +11,12 @@ const PRIVILEE_SERVICE_NAME: Record<string, string> = {
 }
 
 // In-memory caches (reset on process restart)
-let cachedToken: string | null = null
-let tokenExpiry = 0
+const tokenCache: Record<string, { token: string; expiry: number }> = {}
 const serviceIdCache: Record<string, number> = {}
 
 async function getStaffToken(siteId: string): Promise<string> {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken
+  const cached = tokenCache[siteId]
+  if (cached && Date.now() < cached.expiry) return cached.token
 
   const res = await fetch(`${MBO_BASE}/usertoken/issue`, {
     method: 'POST',
@@ -33,13 +33,12 @@ async function getStaffToken(siteId: string): Promise<string> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err?.Error?.Message ?? 'MBO staff authentication failed — check credentials')
+    throw new Error(err?.Error?.Message ?? 'MBO staff authentication failed -- check credentials')
   }
 
   const data = await res.json()
-  cachedToken = data.AccessToken
-  tokenExpiry = Date.now() + 6 * 60 * 60 * 1000
-  return cachedToken!
+  tokenCache[siteId] = { token: data.AccessToken, expiry: Date.now() + 6 * 60 * 60 * 1000 }
+  return data.AccessToken
 }
 
 function headers(token: string, siteId: string) {
@@ -126,16 +125,43 @@ async function sellPrivileeService(token: string, siteId: string, clientId: stri
   }
 }
 
-async function bookClass(token: string, siteId: string, classId: number, clientId: string): Promise<number | null> {
+async function getClientPrivileeServiceId(
+  token: string, siteId: string, clientId: string, serviceId: number
+): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `${MBO_BASE}/client/clientservices?ClientId=${clientId}&CrossRegionalLookup=false`,
+      { headers: headers(token, siteId) }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const match = (data.ClientServices ?? []).find(
+      (cs: { Id: number; Remaining: number; Name: string; Program?: { Id: number } }) =>
+        cs.Name?.toLowerCase().includes('privilee') && cs.Remaining > 0
+    )
+    return match?.Id ?? null
+  } catch {
+    return null
+  }
+}
+
+async function bookClass(
+  token: string, siteId: string, classId: number, clientId: string, clientServiceId?: number | null
+): Promise<number | null> {
+  const payload: Record<string, unknown> = {
+    ClassId: classId,
+    ClientId: clientId,
+    Test: false,
+    SendEmail: false,
+  }
+  if (clientServiceId) {
+    payload.ClientServiceId = clientServiceId
+  }
+
   const res = await fetch(`${MBO_BASE}/class/addclienttoclass`, {
     method: 'POST',
     headers: headers(token, siteId),
-    body: JSON.stringify({
-      ClassId: classId,
-      ClientId: clientId,
-      Test: false,
-      SendEmail: false,
-    }),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -175,10 +201,13 @@ export async function POST(req: NextRequest) {
     // 4. Sell at 0 AED
     await sellPrivileeService(token, siteId, clientId, serviceId)
 
-    // 5. Book class
-    const bookingId = await bookClass(token, siteId, classId, clientId)
+    // 5. Find the Privilee ClientServiceId so MBO uses it (not another active package)
+    const clientServiceId = await getClientPrivileeServiceId(token, siteId, clientId, serviceId)
 
-    // 6. Log to Supabase
+    // 6. Book class with the Privilee service pinned
+    const bookingId = await bookClass(token, siteId, classId, clientId, clientServiceId)
+
+    // 7. Log to Supabase
     const d = new Date(startTime)
     const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const classTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
@@ -201,8 +230,7 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     // Reset token cache on auth failure so next attempt re-fetches
     if (err instanceof Error && err.message.includes('authentication')) {
-      cachedToken = null
-      tokenExpiry = 0
+      Object.keys(tokenCache).forEach(k => delete tokenCache[k])
     }
     const message = err instanceof Error ? err.message : 'Booking failed'
     return NextResponse.json({ error: message }, { status: 500 })
