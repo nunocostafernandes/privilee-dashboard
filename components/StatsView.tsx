@@ -183,11 +183,7 @@ export default function StatsView() {
   useEffect(() => {
     fetch('/api/bookings', { cache: 'no-store' })
       .then(r => r.json())
-      .then(data => {
-        const rows = Array.isArray(data) ? data : data.rows ?? data
-        setBookings(rows)
-        setLoading(false)
-      })
+      .then(data => { setBookings(data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
   }, [])
 
