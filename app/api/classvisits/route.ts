@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await mboFetch('/class/classvisits', siteId, { ClassID: classId })
+    const res = await mboFetch('/class/classvisits', siteId, { ClassID: classId }, true)
 
     if (!res.ok) {
       return NextResponse.json({ error: 'MBO unavailable' }, { status: 503 })
@@ -39,12 +39,8 @@ export async function GET(req: NextRequest) {
     }
 
     await Promise.all(chunks.map(async (chunk) => {
-      const url = new URL('https://api.mindbodyonline.com/public/v6/client/clients')
-      chunk.forEach(id => url.searchParams.append('ClientIds', id))
       try {
-        const clientRes = await fetch(url.toString(), {
-          headers: { 'Api-Key': process.env.MBO_API_KEY!, 'SiteId': siteId },
-        })
+        const clientRes = await mboFetch('/client/clients', siteId, { ClientIds: chunk.join(',') }, true)
         if (clientRes.ok) {
           const clientData = await clientRes.json()
           for (const c of (clientData.Clients ?? [])) {
