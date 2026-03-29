@@ -197,19 +197,15 @@ export async function POST(req: NextRequest) {
 
     // 3. Get Privilee service ID
     const serviceId = await getPrivileeServiceId(token, siteId)
-    const debug: Record<string, unknown> = { serviceId }
 
     // 4. Sell at 0 AED
     await sellPrivileeService(token, siteId, clientId, serviceId)
-    debug.sellOk = true
 
     // 5. Find the Privilee ClientServiceId so MBO uses it (not another active package)
     const clientServiceId = await getClientPrivileeServiceId(token, siteId, clientId)
-    debug.clientServiceId = clientServiceId
 
     // 6. Book class with the Privilee service pinned
     const bookingId = await bookClass(token, siteId, classId, clientId, clientServiceId)
-    debug.bookingId = bookingId
 
     // 7. Log to Supabase
     const d = new Date(startTime)
@@ -230,7 +226,7 @@ export async function POST(req: NextRequest) {
       mbo_booking_id: bookingId ?? null,
     })
 
-    return NextResponse.json({ success: true, clientId, isNewClient, bookingId, debug })
+    return NextResponse.json({ success: true, clientId, isNewClient, bookingId })
   } catch (err: unknown) {
     // Reset token cache on auth failure so next attempt re-fetches
     if (err instanceof Error && err.message.includes('authentication')) {

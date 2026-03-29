@@ -74,10 +74,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
     : privOnly ? visits.filter(v => v.serviceName.toLowerCase().includes('privilee'))
     : visits
 
-  async function toggle() {
-    if (expanded) { setExpanded(false); return }
-    setExpanded(true)
-    if (visits !== null) return
+  async function fetchVisits() {
     setLoading(true)
     setError(false)
     try {
@@ -89,6 +86,13 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
     } finally {
       setLoading(false)
     }
+  }
+
+  async function toggle() {
+    if (expanded) { setExpanded(false); return }
+    setExpanded(true)
+    if (visits !== null) return
+    fetchVisits()
   }
 
   function handleAddClick(e: React.MouseEvent) {
@@ -262,7 +266,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
           siteId={siteId}
           studioName={studioName}
           onClose={() => setBookingOpen(false)}
-          onBooked={() => setVisits(null)}
+          onBooked={() => { setExpanded(true); fetchVisits() }}
         />
       )}
     </>
