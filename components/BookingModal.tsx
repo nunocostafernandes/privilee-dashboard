@@ -228,10 +228,9 @@ export default function BookingModal({ classId, className, startTime, siteId, st
                 Mobile
               </label>
               <input
-                required
                 value={mobile}
                 onChange={e => setMobile(e.target.value)}
-                placeholder="+971 50 000 0000"
+                placeholder="+971 50 000 0000 (optional)"
                 className="w-full rounded-xl px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
                 style={inputStyle}
               />
