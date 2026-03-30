@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await mboFetch('/class/classvisits', siteId, { ClassID: classId }, true)
+    const res = await mboFetch('/class/classvisits', siteId, { ClassID: classId })
 
     if (!res.ok) {
       return NextResponse.json({ error: 'MBO unavailable' }, { status: 503 })
