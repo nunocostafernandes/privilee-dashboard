@@ -49,12 +49,12 @@ export async function mboFetch(
     return headers
   }
 
-  let res = await fetch(url.toString(), { headers: await buildHeaders() })
+  let res = await fetch(url.toString(), { headers: await buildHeaders(), cache: 'no-store' })
 
   // On 401: clear cached token and retry once
   if (res.status === 401 && needsUserToken) {
     delete tokenCache[siteId]
-    res = await fetch(url.toString(), { headers: await buildHeaders() })
+    res = await fetch(url.toString(), { headers: await buildHeaders(), cache: 'no-store' })
   }
 
   return res
