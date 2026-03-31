@@ -158,22 +158,20 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
           </span>
 
           {/* Add button */}
-          {!past && (
-            <button
-              onClick={handleAddClick}
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all cursor-pointer"
-              style={{
-                background: 'var(--accent-glow)',
-                color: 'var(--accent)',
-                border: '1px solid rgba(249,115,22,0.3)',
-              }}
-              title="Add Privilee client"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-            </button>
-          )}
+          <button
+            onClick={handleAddClick}
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all cursor-pointer"
+            style={{
+              background: 'var(--accent-glow)',
+              color: 'var(--accent)',
+              border: '1px solid rgba(249,115,22,0.3)',
+            }}
+            title="Add Privilee client"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
 
           {/* Chevron */}
           <svg
@@ -235,7 +233,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       )}
                       {privOnly && cancellingId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
-                      ) : privOnly && !['LateCanceled', 'NoShow'].includes(v.status) ? (
+                      ) : privOnly && !['LateCanceled', 'NoShow'].includes(v.status) && (
                         <div className="flex gap-1">
                           <button
                             onClick={e => handleCancel(e, v.clientId, false)}
@@ -248,7 +246,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                             style={{ color: 'var(--red)', background: 'var(--red-muted)' }}
                           >Late</button>
                         </div>
-                      ) : null}
+                      )}
                     </div>
                   </li>
                 ))}
