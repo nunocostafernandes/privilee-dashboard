@@ -31,20 +31,6 @@ function pillStyle(totalBooked: number, maxCapacity: number, waitlistCount: numb
   return { bg: 'var(--green-muted)', color: 'var(--green)' }
 }
 
-function statusColor(status: string): string {
-  if (status === 'Waitlisted') return 'var(--accent)'
-  if (['LateCanceled', 'NoShow', 'Unknown'].includes(status)) return 'var(--text-muted)'
-  return 'var(--green)'
-}
-
-function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    Confirmed: 'Confirmed', Booked: 'Confirmed', SignedIn: 'Signed In',
-    Waitlisted: 'Waitlisted', LateCanceled: 'Late-Cancel', NoShow: 'No-Show',
-  }
-  return map[status] ?? 'Unknown'
-}
-
 function formatTime(dt: string): string {
   const d = new Date(dt)
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
