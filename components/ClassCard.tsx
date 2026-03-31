@@ -226,11 +226,6 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       }
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {past && (
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-md" style={{ color: statusColor(v.status), background: 'rgba(255,255,255,0.04)' }}>
-                          {statusLabel(v.status)}
-                        </span>
-                      )}
                       {privOnly && cancellingId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
                       ) : privOnly && !['LateCanceled', 'NoShow'].includes(v.status) && (
