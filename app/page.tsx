@@ -7,6 +7,7 @@ import DateStrip from '@/components/DateStrip'
 import ClassGrid from '@/components/ClassGrid'
 import RefreshButton from '@/components/RefreshButton'
 import StatsView from '@/components/StatsView'
+import ClientSearch from '@/components/ClientSearch'
 
 const AUTO_REFRESH_MS = 15 * 60 * 1000
 
@@ -166,6 +167,8 @@ export default function Home() {
           <StatsView />
         ) : (
           <>
+            <ClientSearch />
+
             {refreshError && (
               <div
                 className="mb-4 px-4 py-2.5 rounded-xl text-sm flex items-center gap-2"
