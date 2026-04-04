@@ -214,7 +214,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                     <div className="flex items-center gap-1.5 shrink-0">
                       {privOnly && cancellingId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
-                      ) : privOnly && !['LateCanceled', 'NoShow'].includes(v.status) && (
+                      ) : privOnly && v.status !== 'LateCanceled' && (
                         <div className="flex gap-1">
                           <button
                             onClick={e => handleCancel(e, v.clientId, false)}
