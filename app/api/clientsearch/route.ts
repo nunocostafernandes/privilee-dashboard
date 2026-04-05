@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
 
 const tokenCache: Record<string, { token: string; expiry: number }> = {}
@@ -10,6 +12,7 @@ async function getStaffToken(siteId: string): Promise<string> {
 
   const res = await fetch(`${MBO_BASE}/usertoken/issue`, {
     method: 'POST',
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       'Api-Key': process.env.MBO_API_KEY!,
@@ -40,6 +43,7 @@ export async function GET(req: NextRequest) {
     const res = await fetch(
       `${MBO_BASE}/client/clients?SearchText=${encodeURIComponent(q)}&Limit=6`,
       {
+        cache: 'no-store',
         headers: {
           'Api-Key': process.env.MBO_API_KEY!,
           'SiteId': siteId,
@@ -47,7 +51,37 @@ export async function GET(req: NextRequest) {
         },
       }
     )
-    if (!res.ok) return NextResponse.json([])
+    if (!res.ok) {
+      // On 401: clear token cache and retry once
+      if (res.status === 401) {
+        delete tokenCache[siteId]
+        const newToken = await getStaffToken(siteId)
+        const retry = await fetch(
+          `${MBO_BASE}/client/clients?SearchText=${encodeURIComponent(q)}&Limit=6`,
+          {
+            cache: 'no-store',
+            headers: {
+              'Api-Key': process.env.MBO_API_KEY!,
+              'SiteId': siteId,
+              'Authorization': `Bearer ${newToken}`,
+            },
+          }
+        )
+        if (!retry.ok) return NextResponse.json([])
+        const retryData = await retry.json()
+        const retryClients = (retryData.Clients ?? []).map((c: {
+          Id: string; FirstName?: string; LastName?: string; Email?: string; MobilePhone?: string
+        }) => ({
+          id: c.Id,
+          firstName: c.FirstName ?? '',
+          lastName: c.LastName ?? '',
+          email: c.Email ?? '',
+          mobile: c.MobilePhone ?? '',
+        }))
+        return NextResponse.json(retryClients)
+      }
+      return NextResponse.json([])
+    }
 
     const data = await res.json()
     const clients = (data.Clients ?? []).map((c: {
