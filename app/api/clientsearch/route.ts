@@ -38,7 +38,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const token = await getStaffToken(siteId)
+    let token: string
+    try {
+      token = await getStaffToken(siteId)
+    } catch (err) {
+      return NextResponse.json({ error: 'token_fail', msg: String(err) }, { status: 500 })
+    }
 
     const res = await fetch(
       `${MBO_BASE}/client/clients?SearchText=${encodeURIComponent(q)}&Limit=6`,
@@ -52,6 +57,8 @@ export async function GET(req: NextRequest) {
       }
     )
     if (!res.ok) {
+      const errBody = await res.text().catch(() => '')
+      console.error('[clientsearch]', res.status, errBody)
       // On 401: clear token cache and retry once
       if (res.status === 401) {
         delete tokenCache[siteId]
