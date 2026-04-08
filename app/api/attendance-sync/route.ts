@@ -70,28 +70,31 @@ export async function POST() {
       }
 
       const data = await res.json()
-      const visits: { ClientId?: string; AppointmentStatus?: string }[] = data.Class?.Visits ?? []
+      const visits: { ClientId?: string; AppointmentStatus?: string; SignedIn?: boolean }[] = data.Class?.Visits ?? []
 
-      // Build a map of clientId -> status
-      const statusMap: Record<string, string> = {}
+      // Build a map of clientId -> { signedIn, status }
+      const visitMap: Record<string, { signedIn: boolean; status: string }> = {}
       for (const v of visits) {
-        if (v.ClientId) statusMap[v.ClientId] = v.AppointmentStatus ?? 'Unknown'
+        if (v.ClientId) {
+          visitMap[v.ClientId] = {
+            signedIn: v.SignedIn === true,
+            status: v.AppointmentStatus ?? 'Unknown',
+          }
+        }
       }
 
       // Update each booking's attendance
       for (const b of group.bookings) {
-        const mboStatus = statusMap[b.client_id]
+        const visit = visitMap[b.client_id]
         let attendance: string
 
-        if (!mboStatus) {
-          // Client not found in MBO visits -- treat as no_show
+        if (!visit) {
           attendance = 'no_show'
-        } else if (mboStatus === 'SignedIn') {
+        } else if (visit.signedIn) {
           attendance = 'attended'
-        } else if (mboStatus === 'LateCanceled') {
+        } else if (visit.status === 'LateCanceled') {
           attendance = 'late_cancel'
         } else {
-          // Booked, NoShow, Unknown -- all count as no_show for past classes
           attendance = 'no_show'
         }
 
