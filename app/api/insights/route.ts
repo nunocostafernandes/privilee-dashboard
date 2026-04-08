@@ -15,15 +15,23 @@ interface Booking {
   created_at: string
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const studio = new URL(req.url).searchParams.get('studio')
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('privilee_bookings')
     .select('id, type, studio_name, class_name, class_date, class_time, client_name, client_email, created_at')
+
+  if (studio && studio !== 'All') {
+    query = query.eq('studio_name', studio)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -152,6 +160,15 @@ export async function GET() {
     count: hourMap[h] ?? 0,
   })).filter(h => h.count > 0)
 
+  // Available studios (always unfiltered)
+  let allStudios: string[] = []
+  if (studio && studio !== 'All') {
+    const { data: studioData } = await supabase.from('privilee_bookings').select('studio_name')
+    allStudios = Array.from(new Set((studioData ?? []).map((r: { studio_name: string }) => r.studio_name))).sort()
+  } else {
+    allStudios = Array.from(new Set(rows.map(r => r.studio_name))).sort()
+  }
+
   return NextResponse.json({
     kpis: { totalBookings, uniqueClients, cancelRate, repeatRate },
     dailyTrend,
@@ -162,5 +179,6 @@ export async function GET() {
     leadTime,
     cancellationBreakdown,
     repeatClients,
+    studios: allStudios,
   })
 }

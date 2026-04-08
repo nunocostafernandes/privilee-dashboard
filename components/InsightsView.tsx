@@ -27,6 +27,7 @@ interface InsightsData {
   repeatClients: RepeatClient[]
   leadTime: LeadTime[]
   bookingActivity: BookingHour[]
+  studios: string[]
 }
 
 const STUDIO_COLORS: Record<string, string> = {
@@ -86,13 +87,21 @@ export default function InsightsView() {
   const [data, setData] = useState<InsightsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [studio, setStudio] = useState('All')
+  const [studios, setStudios] = useState<string[]>([])
 
   useEffect(() => {
-    fetch('/api/insights', { cache: 'no-store' })
+    setLoading(true)
+    const param = studio !== 'All' ? `?studio=${encodeURIComponent(studio)}` : ''
+    fetch(`/api/insights${param}`, { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
+      .then(d => {
+        setData(d)
+        if (d.studios?.length) setStudios(d.studios)
+        setLoading(false)
+      })
       .catch(() => { setError(true); setLoading(false) })
-  }, [])
+  }, [studio])
 
   if (loading) {
     return (
@@ -120,6 +129,27 @@ export default function InsightsView() {
 
   return (
     <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+      {/* Studio filter */}
+      {studios.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto">
+          {['All', ...studios].map(s => (
+            <button
+              key={s}
+              onClick={() => setStudio(s)}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+              style={{
+                background: studio === s ? 'var(--accent)' : 'var(--surface)',
+                color: studio === s ? '#fff' : 'var(--text-muted)',
+                border: `1px solid ${studio === s ? 'var(--accent)' : 'var(--border)'}`,
+                boxShadow: studio === s ? '0 2px 8px rgba(249,115,22,0.25)' : 'none',
+              }}
+            >
+              {s === 'All' ? 'All Studios' : STUDIO_COLORS[s] ? s : s}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 1. KPI Strip */}
       <div style={{
