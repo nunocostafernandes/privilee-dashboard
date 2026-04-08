@@ -47,11 +47,11 @@ export async function GET(req: Request) {
   const cancelRate = rows.length > 0 ? Math.round((cancellations.length / rows.length) * 1000) / 10 : 0
 
   // Repeat visitors
-  const clientBookingCounts: Record<string, { name: string; count: number; lastDate: string }> = {}
+  const clientBookingCounts: Record<string, { name: string; email: string; count: number; lastDate: string }> = {}
   for (const b of bookings) {
     const key = b.client_email.toLowerCase()
     if (!clientBookingCounts[key]) {
-      clientBookingCounts[key] = { name: b.client_name, count: 0, lastDate: b.class_date }
+      clientBookingCounts[key] = { name: b.client_name, email: key, count: 0, lastDate: b.class_date }
     }
     clientBookingCounts[key].count++
     if (b.class_date > clientBookingCounts[key].lastDate) {

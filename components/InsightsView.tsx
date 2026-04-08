@@ -13,9 +13,10 @@ interface StudioSplit { studio: string; count: number }
 interface TimeSlot { time: string; count: number }
 interface ClassRank { className: string; bookings: number; cancellations: number; cancelRate: number }
 interface CancellationBreakdown { early: number; late: number; earlyPct: number; latePct: number }
-interface RepeatClient { name: string; count: number; lastDate: string }
+interface RepeatClient { name: string; email: string; count: number; lastDate: string }
 interface LeadTime { label: string; count: number; pct: number }
 interface BookingHour { hour: number; label: string; count: number }
+interface ClientBooking { class_name: string; class_date: string; class_time: string; studio_name: string; type: string }
 
 interface InsightsData {
   kpis: KPIs
@@ -75,6 +76,85 @@ function HBar({ value, max, color, height = 18 }: { value: number; max: number; 
       background: color, borderRadius: '4px',
       minWidth: value > 0 ? '4px' : '0', transition: 'width 0.3s ease',
     }} />
+  )
+}
+
+function ClientRow({ client, index, total }: { client: RepeatClient; index: number; total: number }) {
+  const [expanded, setExpanded] = useState(false)
+  const [bookings, setBookings] = useState<ClientBooking[] | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function toggle() {
+    setExpanded(e => !e)
+    if (bookings !== null) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(client.email)}`, { cache: 'no-store' })
+      const data = await res.json()
+      setBookings(data)
+    } catch { setBookings([]) }
+    setLoading(false)
+  }
+
+  const typeCfg: Record<string, { text: string; color: string }> = {
+    booking: { text: 'Booked', color: 'var(--green)' },
+    early_cancel: { text: 'Early', color: 'var(--accent)' },
+    late_cancel: { text: 'Late', color: 'var(--red)' },
+  }
+
+  return (
+    <div>
+      <button
+        onClick={toggle}
+        className="w-full cursor-pointer transition-colors"
+        style={{
+          display: 'grid', gridTemplateColumns: '1fr 70px 90px',
+          padding: '10px 16px', textAlign: 'left',
+          borderBottom: expanded || index < total - 1 ? '1px solid var(--border)' : 'none',
+          background: index % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+        }}
+      >
+        <span style={{
+          fontSize: '13px', fontWeight: 500, color: 'var(--accent)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {client.name}
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+          {client.count}
+        </span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'right' }}>
+          {formatDate(client.lastDate)}
+        </span>
+      </button>
+      {expanded && (
+        <div style={{ padding: '8px 16px 12px', background: 'var(--surface)', borderBottom: index < total - 1 ? '1px solid var(--border)' : 'none' }}>
+          {loading && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Loading...</span>}
+          {bookings && bookings.length === 0 && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No bookings found.</span>}
+          {bookings && bookings.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {bookings.map((b, bi) => {
+                const t = typeCfg[b.type] ?? typeCfg.booking
+                return (
+                  <div key={bi} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                        style={{ color: t.color, background: `${t.color}18`, flexShrink: 0 }}
+                      >{t.text}</span>
+                      <span className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{b.class_name}</span>
+                    </div>
+                    <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>
+                      {b.studio_name} | {formatDate(b.class_date)} {b.class_time}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -381,22 +461,7 @@ export default function InsightsView() {
                 <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: 'var(--text-muted)', textAlign: 'right' }}>Last Visit</span>
               </div>
               {repeatClients.slice(0, 30).map((c, i) => (
-                <div key={`${c.name}-${i}`} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 70px 90px',
-                  padding: '10px 16px',
-                  borderBottom: i < repeatClients.length - 1 && i < 29 ? '1px solid var(--border)' : 'none',
-                  background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
-                }}>
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {c.name}
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
-                    {c.count}
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'right' }}>
-                    {formatDate(c.lastDate)}
-                  </span>
-                </div>
+                <ClientRow key={`${c.email}-${i}`} client={c} index={i} total={Math.min(repeatClients.length, 30)} />
               ))}
             </div>
           )}
