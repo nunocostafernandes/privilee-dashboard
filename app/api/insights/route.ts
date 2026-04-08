@@ -23,15 +23,26 @@ export async function GET(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  let query = supabase
-    .from('privilee_bookings')
-    .select('id, type, studio_name, class_name, class_date, class_time, client_name, client_email, created_at')
-
-  if (studio && studio !== 'All') {
-    query = query.eq('studio_name', studio)
+  // Paginate past Supabase 1000-row limit
+  const allRows: Booking[] = []
+  let from = 0
+  const PAGE = 1000
+  while (true) {
+    let query = supabase
+      .from('privilee_bookings')
+      .select('id, type, studio_name, class_name, class_date, class_time, client_name, client_email, created_at')
+    if (studio && studio !== 'All') {
+      query = query.eq('studio_name', studio)
+    }
+    const { data: page, error: pageError } = await query.range(from, from + PAGE - 1)
+    if (pageError) return NextResponse.json({ error: pageError.message }, { status: 500 })
+    if (!page || page.length === 0) break
+    allRows.push(...(page as Booking[]))
+    if (page.length < PAGE) break
+    from += PAGE
   }
-
-  const { data, error } = await query
+  const data = allRows
+  const error = null
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

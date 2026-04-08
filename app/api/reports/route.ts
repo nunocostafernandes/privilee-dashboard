@@ -75,21 +75,30 @@ export async function GET(req: Request) {
   const nextMonth = new Date(Number(yearStr), Number(monthStr), 1)
   const endDate = nextMonth.toISOString().slice(0, 10)
 
-  const { data: monthData, error: monthError } = await supabase
-    .from('privilee_bookings')
-    .select('*')
-    .gte('class_date', startDate)
-    .lt('class_date', endDate)
-    .order('created_at', { ascending: true })
-
-  if (monthError) {
-    return NextResponse.json({ error: monthError.message }, { status: 500 })
+  // Fetch ALL bookings for the month (paginate past Supabase 1000-row limit)
+  const monthData: BookingRow[] = []
+  let from = 0
+  const PAGE = 1000
+  while (true) {
+    const { data: page, error: pageError } = await supabase
+      .from('privilee_bookings')
+      .select('*')
+      .gte('class_date', startDate)
+      .lt('class_date', endDate)
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (pageError) return NextResponse.json({ error: pageError.message }, { status: 500 })
+    if (!page || page.length === 0) break
+    monthData.push(...page)
+    if (page.length < PAGE) break
+    from += PAGE
   }
 
   // Fetch all distinct months for the selector
   const { data: allData, error: allError } = await supabase
     .from('privilee_bookings')
     .select('class_date')
+    .limit(5000)
 
   if (allError) {
     return NextResponse.json({ error: allError.message }, { status: 500 })
