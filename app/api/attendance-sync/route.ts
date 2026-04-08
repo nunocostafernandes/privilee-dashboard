@@ -13,17 +13,23 @@ interface PrivileeBooking {
   class_date: string
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Get yesterday's date in YYYY-MM-DD (Dubai time UTC+4)
-  const now = new Date()
-  const dubai = new Date(now.getTime() + 4 * 60 * 60 * 1000)
-  dubai.setDate(dubai.getDate() - 1)
-  const yesterday = dubai.toISOString().slice(0, 10)
+  // Accept optional date param, default to yesterday (Dubai time UTC+4)
+  const dateParam = new URL(req.url).searchParams.get('date')
+  let yesterday: string
+  if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    yesterday = dateParam
+  } else {
+    const now = new Date()
+    const dubai = new Date(now.getTime() + 4 * 60 * 60 * 1000)
+    dubai.setDate(dubai.getDate() - 1)
+    yesterday = dubai.toISOString().slice(0, 10)
+  }
 
   // Fetch all Privilee bookings from yesterday that haven't been synced yet
   const { data: bookings } = await supabase
@@ -120,6 +126,6 @@ export async function POST() {
 }
 
 // Also support GET for easy testing
-export async function GET() {
-  return POST()
+export async function GET(req: Request) {
+  return POST(req)
 }
