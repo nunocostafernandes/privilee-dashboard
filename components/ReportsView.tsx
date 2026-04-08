@@ -42,11 +42,21 @@ interface ClientDetail {
   studioName: string
 }
 
+interface DailyStudioCell { attended: number; noShow: number; lateCancel: number; topUp: number }
+interface DailyRow {
+  date: string
+  studios: Record<string, DailyStudioCell>
+  totals: DailyStudioCell
+  excess: number
+}
+
 interface ReportsData {
   month: string
   summary: Summary
   billable: Billable
   weeklyBreakdown: WeekRow[]
+  dailyBreakdown: DailyRow[]
+  dailyCap: number
   clientDetails: ClientDetail[]
   availableMonths: string[]
 }
@@ -175,7 +185,9 @@ export default function ReportsView() {
     return <p style={{ fontSize: '12px', marginTop: '16px', color: 'var(--text-muted)' }}>Could not load reports.</p>
   }
 
-  const { summary, billable, weeklyBreakdown, clientDetails } = data
+  const { summary, billable, weeklyBreakdown, dailyBreakdown, dailyCap, clientDetails } = data
+  const studioNames = ['Alserkal Avenue', 'Town Square', 'Abu Dhabi']
+  const studioShort: Record<string, string> = { 'Alserkal Avenue': 'Alserkal', 'Town Square': 'Town Sq.', 'Abu Dhabi': 'Abu Dhabi' }
 
   const filtered = clientDetails.filter(c => {
     if (!search) return true
@@ -331,7 +343,109 @@ export default function ReportsView() {
         </div>
       </section>
 
-      {/* 4. Client Detail Table */}
+      {/* 4. Daily Breakdown by Studio */}
+      {dailyBreakdown && dailyBreakdown.length > 0 && (
+        <section>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <SectionTitle>Daily Breakdown by Studio (Cap: {dailyCap}/day)</SectionTitle>
+            <button
+              onClick={() => {
+                const headers = ['Day', ...studioNames.flatMap(s => [`${studioShort[s]} Attended`, `${studioShort[s]} No-Show`, `${studioShort[s]} Late Cancel`, `${studioShort[s]} Top Up`]), 'Total Attended', 'Total No-Show', 'Total Late Cancel', 'Total Top Up', 'Excess']
+                const csvRows = dailyBreakdown.map(d => {
+                  const day = new Date(d.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+                  const cells = studioNames.flatMap(s => {
+                    const c = d.studios[s] || { attended: 0, noShow: 0, lateCancel: 0, topUp: 0 }
+                    return [c.attended, c.noShow, c.lateCancel, c.topUp]
+                  })
+                  return [day, ...cells, d.totals.attended, d.totals.noShow, d.totals.lateCancel, d.totals.topUp, d.excess].join(',')
+                })
+                const blob = new Blob([[headers.join(','), ...csvRows].join('\n')], { type: 'text/csv' })
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+                a.download = `privilee-daily-${data.month}.csv`; a.click()
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Daily Summary
+            </button>
+          </div>
+          <div style={{ ...cardStyle, padding: 0, overflow: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <th rowSpan={2} style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', position: 'sticky', left: 0, background: 'var(--card)', zIndex: 1 }}>Day</th>
+                  {studioNames.map(s => (
+                    <th key={s} colSpan={4} style={{ padding: '8px 4px', textAlign: 'center', color: 'var(--text)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', borderLeft: '1px solid var(--border)' }}>{studioShort[s]}</th>
+                  ))}
+                  <th colSpan={4} style={{ padding: '8px 4px', textAlign: 'center', color: 'var(--text)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', borderLeft: '1px solid var(--border)' }}>Totals</th>
+                  <th rowSpan={2} style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', borderLeft: '1px solid var(--border)' }}>Excess</th>
+                </tr>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {[...studioNames, 'Totals'].flatMap(() => ['a', 'x', 'lc', '+']).map((icon, i) => (
+                    <th key={i} style={{ padding: '4px 6px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600, fontSize: '10px', borderLeft: i % 4 === 0 ? '1px solid var(--border)' : 'none' }}>
+                      {icon === 'a' ? '\u2714' : icon === 'x' ? '\u2718' : icon === 'lc' ? '\u23F0' : '+'}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dailyBreakdown.map((d, idx) => {
+                  const dayNum = new Date(d.date + 'T00:00:00').getDate()
+                  return (
+                    <tr key={d.date} style={{ borderBottom: idx < dailyBreakdown.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)', position: 'sticky', left: 0, background: 'var(--card)', zIndex: 1, fontVariantNumeric: 'tabular-nums' }}>{dayNum}</td>
+                      {studioNames.map(s => {
+                        const c = d.studios[s] || { attended: 0, noShow: 0, lateCancel: 0, topUp: 0 }
+                        return [
+                          <td key={`${s}-a`} style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--green)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)' }}>{c.attended || ''}</td>,
+                          <td key={`${s}-x`} style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--red)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.noShow || ''}</td>,
+                          <td key={`${s}-lc`} style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.lateCancel || ''}</td>,
+                          <td key={`${s}-t`} style={{ padding: '6px 6px', textAlign: 'center', color: '#60a5fa', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.topUp || ''}</td>,
+                        ]
+                      })}
+                      <td style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--green)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)' }}>{d.totals.attended}</td>
+                      <td style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--red)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{d.totals.noShow || ''}</td>
+                      <td style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--accent)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{d.totals.lateCancel || ''}</td>
+                      <td style={{ padding: '6px 6px', textAlign: 'center', color: '#60a5fa', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{d.totals.topUp || ''}</td>
+                      <td style={{
+                        padding: '6px 10px', textAlign: 'center', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                        borderLeft: '1px solid var(--border)',
+                        color: d.excess > 0 ? 'var(--red)' : 'var(--green)',
+                        background: d.excess > 0 ? 'var(--red-muted)' : d.excess === 0 ? 'var(--green-muted)' : 'transparent',
+                        borderRadius: '0',
+                      }}>{d.excess}</td>
+                    </tr>
+                  )
+                })}
+                {/* Totals row */}
+                <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface)' }}>
+                  <td style={{ padding: '10px 10px', fontWeight: 700, color: 'var(--text)', position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 1 }}>TOTAL</td>
+                  {studioNames.map(s => {
+                    const totA = dailyBreakdown.reduce((sum, d) => sum + (d.studios[s]?.attended || 0), 0)
+                    const totX = dailyBreakdown.reduce((sum, d) => sum + (d.studios[s]?.noShow || 0), 0)
+                    const totLC = dailyBreakdown.reduce((sum, d) => sum + (d.studios[s]?.lateCancel || 0), 0)
+                    const totT = dailyBreakdown.reduce((sum, d) => sum + (d.studios[s]?.topUp || 0), 0)
+                    return [
+                      <td key={`${s}-ta`} style={{ padding: '10px 6px', textAlign: 'center', color: 'var(--green)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)' }}>{totA}</td>,
+                      <td key={`${s}-tx`} style={{ padding: '10px 6px', textAlign: 'center', color: 'var(--red)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{totX}</td>,
+                      <td key={`${s}-tlc`} style={{ padding: '10px 6px', textAlign: 'center', color: 'var(--accent)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{totLC}</td>,
+                      <td key={`${s}-tt`} style={{ padding: '10px 6px', textAlign: 'center', color: '#60a5fa', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{totT}</td>,
+                    ]
+                  })}
+                  <td style={{ padding: '10px 6px', textAlign: 'center', color: 'var(--green)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)' }}>{dailyBreakdown.reduce((s, d) => s + d.totals.attended, 0)}</td>
+                  <td style={{ padding: '10px 6px', textAlign: 'center', color: 'var(--red)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{dailyBreakdown.reduce((s, d) => s + d.totals.noShow, 0)}</td>
+                  <td style={{ padding: '10px 6px', textAlign: 'center', color: 'var(--accent)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{dailyBreakdown.reduce((s, d) => s + d.totals.lateCancel, 0)}</td>
+                  <td style={{ padding: '10px 6px', textAlign: 'center', color: '#60a5fa', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{dailyBreakdown.reduce((s, d) => s + d.totals.topUp, 0)}</td>
+                  <td style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 700, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)', color: 'var(--red)' }}>{dailyBreakdown.reduce((s, d) => s + d.excess, 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* 5. Client Detail Table */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <SectionTitle>Client Details</SectionTitle>

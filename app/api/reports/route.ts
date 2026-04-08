@@ -216,11 +216,57 @@ export async function GET(req: Request) {
     studioName: row.studio_name,
   })).sort((a, b) => a.classDate.localeCompare(b.classDate) || a.classTime.localeCompare(b.classTime))
 
+  // Daily breakdown by studio
+  const DAILY_CAP = 85
+  const studioNames = ['Alserkal Avenue', 'Town Square', 'Abu Dhabi']
+  const dayMap: Record<string, Record<string, { attended: number; noShow: number; lateCancel: number; topUp: number }>> = {}
+
+  for (const row of rows) {
+    const day = row.class_date
+    if (!dayMap[day]) {
+      dayMap[day] = {}
+      for (const s of studioNames) dayMap[day][s] = { attended: 0, noShow: 0, lateCancel: 0, topUp: 0 }
+    }
+    const studio = studioNames.find(s => row.studio_name.includes(s.split(' ')[0])) ?? 'Alserkal Avenue'
+    const cell = dayMap[day][studio]
+
+    if (row.type === 'late_cancel') {
+      cell.lateCancel++
+    } else if (row.type === 'early_cancel') {
+      // Early cancels don't appear in daily breakdown (not billed)
+    } else if (row.type === 'booking') {
+      if (classifications[row.id] === 'top_up') {
+        cell.topUp++
+      } else if (row.attendance === 'no_show') {
+        cell.noShow++
+      } else {
+        // attended or not yet synced (future class) = counts as checked-in
+        cell.attended++
+      }
+    }
+  }
+
+  const dailyBreakdown = Object.entries(dayMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, studios]) => {
+      const totals = { attended: 0, noShow: 0, lateCancel: 0, topUp: 0 }
+      for (const s of studioNames) {
+        totals.attended += studios[s].attended
+        totals.noShow += studios[s].noShow
+        totals.lateCancel += studios[s].lateCancel
+        totals.topUp += studios[s].topUp
+      }
+      const excess = Math.max(0, totals.attended - DAILY_CAP)
+      return { date, studios, totals, excess }
+    })
+
   return NextResponse.json({
     month,
     summary,
     billable,
     weeklyBreakdown,
+    dailyBreakdown,
+    dailyCap: DAILY_CAP,
     clientDetails,
     availableMonths,
   })
