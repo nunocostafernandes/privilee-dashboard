@@ -41,14 +41,7 @@ export async function GET(req: Request) {
     if (page.length < PAGE) break
     from += PAGE
   }
-  const data = allRows
-  const error = null
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  const rows = (data ?? []) as Booking[]
+  const rows = allRows
 
   // KPIs
   const bookings = rows.filter(r => r.type === 'booking')
