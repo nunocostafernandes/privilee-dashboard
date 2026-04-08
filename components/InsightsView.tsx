@@ -39,7 +39,7 @@ const STUDIO_COLORS: Record<string, string> = {
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
