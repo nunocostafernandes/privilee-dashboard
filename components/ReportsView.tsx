@@ -127,6 +127,8 @@ export default function ReportsView() {
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [search, setSearch] = useState('')
   const [showAll, setShowAll] = useState(false)
+  const [popup, setPopup] = useState<{ title: string; clients: string[] } | null>(null)
+  const [syncing, setSyncing] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -190,8 +192,6 @@ export default function ReportsView() {
   const { summary, billable, weeklyBreakdown, dailyBreakdown, dailyCap, clientDetails } = data
   const studioNames = ['Alserkal Avenue', 'Town Square', 'Abu Dhabi']
   const studioShort: Record<string, string> = { 'Alserkal Avenue': 'Alserkal', 'Town Square': 'Town Sq.', 'Abu Dhabi': 'Abu Dhabi' }
-  const [popup, setPopup] = useState<{ title: string; clients: string[] } | null>(null)
-  const [syncing, setSyncing] = useState<string | null>(null)
 
   async function syncDay(date: string) {
     setSyncing(date)
