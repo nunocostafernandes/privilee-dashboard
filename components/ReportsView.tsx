@@ -130,6 +130,7 @@ export default function ReportsView() {
   const [showAll, setShowAll] = useState(false)
   const [popup, setPopup] = useState<{ title: string; clients: string[] } | null>(null)
   const [syncing, setSyncing] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -196,14 +197,22 @@ export default function ReportsView() {
 
   async function syncDay(date: string) {
     setSyncing(date)
+    setToast(null)
     try {
-      await fetch(`/api/attendance-sync?date=${date}`, { cache: 'no-store' })
+      const syncRes = await fetch(`/api/attendance-sync?date=${date}`, { cache: 'no-store' })
+      const syncData = await syncRes.json()
       // Re-fetch report data
       const param = month !== defaultMonth ? `?month=${month}` : ''
       const res = await fetch(`/api/reports${param}`, { cache: 'no-store' })
       const d = await res.json()
       setData(d)
-    } catch { /* ignore */ }
+      const day = new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      setToast(`Synced ${day}: ${syncData.synced ?? 0} bookings updated`)
+      setTimeout(() => setToast(null), 4000)
+    } catch {
+      setToast('Sync failed')
+      setTimeout(() => setToast(null), 3000)
+    }
     setSyncing(null)
   }
 
@@ -608,6 +617,19 @@ export default function ReportsView() {
           )}
         </div>
       </section>
+
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 60, padding: '10px 20px', borderRadius: '12px',
+          background: toast.includes('failed') ? 'var(--red)' : 'var(--green)',
+          color: '#fff', fontSize: '13px', fontWeight: 600,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          {toast}
+        </div>
+      )}
 
       {/* Client list popup */}
       {popup && (
