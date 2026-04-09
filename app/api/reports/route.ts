@@ -133,17 +133,39 @@ export async function GET(req: Request) {
     const groupRows = groups[key].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
-    let complimentaryAssigned = false
+    let complimentaryUsed = false // true when a booking (not cancel) has taken the free slot
     for (const row of groupRows) {
       if (row.type === 'early_cancel') {
-        // Early cancels don't consume the slot and aren't classified as comp or top-up
-        // but we still tag them for display
-        classifications[row.id] = complimentaryAssigned ? 'top_up' : 'complimentary'
+        // Early cancels don't consume the slot -- tag based on current state
+        classifications[row.id] = complimentaryUsed ? 'top_up' : 'complimentary'
+        // Don't set complimentaryUsed -- early cancel returns the slot
         continue
       }
-      if (!complimentaryAssigned) {
+      if (row.type === 'late_cancel') {
+        // Late cancel inherits classification from the original booking
+        // If comp slot was used (by the booking this is cancelling), this is complimentary
+        // Late cancel DOES return the comp slot (per Privilee agreement)
+        if (complimentaryUsed) {
+          // This late-cancel is for a booking that was complimentary or a top-up.
+          // Check if there's a matching booking for same client+class in this group
+          const matchingBooking = groupRows.find(
+            r => r.type === 'booking' && r.class_id === row.class_id && r.client_email === row.client_email
+          )
+          if (matchingBooking && classifications[matchingBooking.id] === 'complimentary') {
+            classifications[row.id] = 'complimentary'
+            complimentaryUsed = false // slot returned per agreement
+          } else {
+            classifications[row.id] = 'top_up'
+          }
+        } else {
+          classifications[row.id] = 'complimentary'
+        }
+        continue
+      }
+      // Regular booking
+      if (!complimentaryUsed) {
         classifications[row.id] = 'complimentary'
-        complimentaryAssigned = true
+        complimentaryUsed = true
       } else {
         classifications[row.id] = 'top_up'
       }
