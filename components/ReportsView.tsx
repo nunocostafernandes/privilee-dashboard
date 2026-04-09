@@ -191,7 +191,7 @@ export default function ReportsView() {
     return <p style={{ fontSize: '12px', marginTop: '16px', color: 'var(--text-muted)' }}>Could not load reports.</p>
   }
 
-  const { summary, billable, weeklyBreakdown, dailyBreakdown, dailyCap, clientDetails } = data
+  const { summary, weeklyBreakdown, dailyBreakdown, dailyCap, clientDetails } = data
   const studioNames = ['Alserkal Avenue', 'Town Square', 'Abu Dhabi']
   const studioShort: Record<string, string> = { 'Alserkal Avenue': 'Alserkal', 'Town Square': 'Town Sq.', 'Abu Dhabi': 'Abu Dhabi' }
 
