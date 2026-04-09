@@ -269,59 +269,7 @@ export default function ReportsView() {
         <KPICard label="Top Ups" value={summary.topUps} color="#60a5fa" />
       </div>
 
-      {/* 2. Billable to Privilee */}
-      <section>
-        <SectionTitle>Billable to Privilee</SectionTitle>
-        <div style={{
-          ...cardStyle,
-          borderLeft: '3px solid var(--red)',
-          display: 'flex', flexDirection: 'column', gap: '12px',
-        }}>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
-            No-shows + Late cancels + Excess (above {dailyCap}/day cap)
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
-            <div>
-              <span style={{
-                display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px',
-              }}>No Shows</span>
-              <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--red)' }}>
-                {billable.noShows}
-              </span>
-            </div>
-            <div>
-              <span style={{
-                display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px',
-              }}>Late Cancels</span>
-              <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--red)' }}>
-                {billable.lateCancels}
-              </span>
-            </div>
-            <div>
-              <span style={{
-                display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px',
-              }}>Excess</span>
-              <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)' }}>
-                {billable.excess}
-              </span>
-            </div>
-            <div>
-              <span style={{
-                display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px',
-              }}>Total Billable</span>
-              <span style={{ fontSize: '28px', fontWeight: 700, color: 'var(--red)' }}>
-                {billable.total}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Weekly Breakdown */}
+      {/* 2. Weekly Breakdown */}
       <section>
         <SectionTitle>Weekly Breakdown</SectionTitle>
         <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
