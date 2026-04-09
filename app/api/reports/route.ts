@@ -219,29 +219,33 @@ export async function GET(req: Request) {
   // Daily breakdown by studio
   const DAILY_CAP = 85
   const studioNames = ['Alserkal Avenue', 'Town Square', 'Abu Dhabi']
-  const dayMap: Record<string, Record<string, { attended: number; noShow: number; lateCancel: number; topUp: number }>> = {}
+  type CellClients = { attended: string[]; noShow: string[]; lateCancel: string[]; topUp: string[] }
+  const dayMap: Record<string, Record<string, CellClients>> = {}
 
   for (const row of rows) {
     const day = row.class_date
     if (!dayMap[day]) {
       dayMap[day] = {}
-      for (const s of studioNames) dayMap[day][s] = { attended: 0, noShow: 0, lateCancel: 0, topUp: 0 }
+      for (const s of studioNames) dayMap[day][s] = { attended: [], noShow: [], lateCancel: [], topUp: [] }
     }
     const studio = studioNames.find(s => row.studio_name.includes(s.split(' ')[0])) ?? 'Alserkal Avenue'
     const cell = dayMap[day][studio]
+    const clientLabel = `${row.client_name} (${row.class_name} ${row.class_time})`
 
     if (row.type === 'late_cancel') {
-      cell.lateCancel++
+      cell.lateCancel.push(clientLabel)
     } else if (row.type === 'early_cancel') {
-      // Early cancels don't appear in daily breakdown (not billed)
+      // Early cancels don't appear in daily breakdown
     } else if (row.type === 'booking') {
+      // Top-up is a classification, not mutually exclusive with attendance
       if (classifications[row.id] === 'top_up') {
-        cell.topUp++
-      } else if (row.attendance === 'no_show') {
-        cell.noShow++
+        cell.topUp.push(clientLabel)
+      }
+      // Attendance: attended or no-show (independent of top-up)
+      if (row.attendance === 'no_show') {
+        cell.noShow.push(clientLabel)
       } else {
-        // attended or not yet synced (future class) = counts as checked-in
-        cell.attended++
+        cell.attended.push(clientLabel)
       }
     }
   }
@@ -249,15 +253,24 @@ export async function GET(req: Request) {
   const dailyBreakdown = Object.entries(dayMap)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, studios]) => {
+      const studioCounts: Record<string, { attended: number; noShow: number; lateCancel: number; topUp: number }> = {}
+      const studioClients: Record<string, CellClients> = {}
       const totals = { attended: 0, noShow: 0, lateCancel: 0, topUp: 0 }
       for (const s of studioNames) {
-        totals.attended += studios[s].attended
-        totals.noShow += studios[s].noShow
-        totals.lateCancel += studios[s].lateCancel
-        totals.topUp += studios[s].topUp
+        studioCounts[s] = {
+          attended: studios[s].attended.length,
+          noShow: studios[s].noShow.length,
+          lateCancel: studios[s].lateCancel.length,
+          topUp: studios[s].topUp.length,
+        }
+        studioClients[s] = studios[s]
+        totals.attended += studios[s].attended.length
+        totals.noShow += studios[s].noShow.length
+        totals.lateCancel += studios[s].lateCancel.length
+        totals.topUp += studios[s].topUp.length
       }
       const excess = Math.max(0, totals.attended - DAILY_CAP)
-      return { date, studios, totals, excess }
+      return { date, studios: studioCounts, clients: studioClients, totals, excess }
     })
 
   return NextResponse.json({

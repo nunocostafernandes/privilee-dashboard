@@ -43,9 +43,11 @@ interface ClientDetail {
 }
 
 interface DailyStudioCell { attended: number; noShow: number; lateCancel: number; topUp: number }
+interface DailyClientCell { attended: string[]; noShow: string[]; lateCancel: string[]; topUp: string[] }
 interface DailyRow {
   date: string
   studios: Record<string, DailyStudioCell>
+  clients: Record<string, DailyClientCell>
   totals: DailyStudioCell
   excess: number
 }
@@ -188,6 +190,23 @@ export default function ReportsView() {
   const { summary, billable, weeklyBreakdown, dailyBreakdown, dailyCap, clientDetails } = data
   const studioNames = ['Alserkal Avenue', 'Town Square', 'Abu Dhabi']
   const studioShort: Record<string, string> = { 'Alserkal Avenue': 'Alserkal', 'Town Square': 'Town Sq.', 'Abu Dhabi': 'Abu Dhabi' }
+  const [popup, setPopup] = useState<{ title: string; clients: string[] } | null>(null)
+  const [syncing, setSyncing] = useState<string | null>(null)
+
+  async function syncDay(date: string) {
+    setSyncing(date)
+    try {
+      await fetch(`/api/attendance-sync?date=${date}`, { cache: 'no-store' })
+      // Re-fetch report data
+      const param = month !== defaultMonth ? `?month=${month}` : ''
+      const res = await fetch(`/api/reports${param}`, { cache: 'no-store' })
+      const d = await res.json()
+      setData(d)
+    } catch { /* ignore */ }
+    setSyncing(null)
+  }
+
+  const defaultMonth = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` })()
 
   const filtered = clientDetails.filter(c => {
     if (!search) return true
@@ -380,6 +399,7 @@ export default function ReportsView() {
                   ))}
                   <th colSpan={4} style={{ padding: '8px 4px', textAlign: 'center', color: 'var(--text)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', borderLeft: '1px solid var(--border)' }}>Totals</th>
                   <th rowSpan={2} style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', borderLeft: '1px solid var(--border)' }}>Excess</th>
+                  <th rowSpan={2} style={{ padding: '8px 6px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', borderLeft: '1px solid var(--border)', width: '40px' }}>Sync</th>
                 </tr>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {[...studioNames, 'Totals'].flatMap(() => ['a', 'x', 'lc', '+']).map((icon, i) => (
@@ -397,11 +417,14 @@ export default function ReportsView() {
                       <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)', position: 'sticky', left: 0, background: 'var(--card)', zIndex: 1, fontVariantNumeric: 'tabular-nums' }}>{dayNum}</td>
                       {studioNames.map(s => {
                         const c = d.studios[s] || { attended: 0, noShow: 0, lateCancel: 0, topUp: 0 }
+                        const cl = d.clients?.[s] || { attended: [], noShow: [], lateCancel: [], topUp: [] }
+                        const click = (title: string, list: string[]) => list.length > 0 ? () => setPopup({ title, clients: list }) : undefined
+                        const cellStyle = (color: string, border?: boolean): React.CSSProperties => ({ padding: '6px 6px', textAlign: 'center', color, fontWeight: 600, fontVariantNumeric: 'tabular-nums', borderLeft: border ? '1px solid var(--border)' : 'none', cursor: c.attended > 0 || c.noShow > 0 || c.lateCancel > 0 || c.topUp > 0 ? 'pointer' : 'default' })
                         return [
-                          <td key={`${s}-a`} style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--green)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)' }}>{c.attended || ''}</td>,
-                          <td key={`${s}-x`} style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--red)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.noShow || ''}</td>,
-                          <td key={`${s}-lc`} style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.lateCancel || ''}</td>,
-                          <td key={`${s}-t`} style={{ padding: '6px 6px', textAlign: 'center', color: '#60a5fa', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.topUp || ''}</td>,
+                          <td key={`${s}-a`} style={cellStyle('var(--green)', true)} onClick={click(`${studioShort[s]} - Attended (Day ${dayNum})`, cl.attended)}>{c.attended || ''}</td>,
+                          <td key={`${s}-x`} style={cellStyle('var(--red)')} onClick={click(`${studioShort[s]} - No Show (Day ${dayNum})`, cl.noShow)}>{c.noShow || ''}</td>,
+                          <td key={`${s}-lc`} style={cellStyle('var(--accent)')} onClick={click(`${studioShort[s]} - Late Cancel (Day ${dayNum})`, cl.lateCancel)}>{c.lateCancel || ''}</td>,
+                          <td key={`${s}-t`} style={cellStyle('#60a5fa')} onClick={click(`${studioShort[s]} - Top Up (Day ${dayNum})`, cl.topUp)}>{c.topUp || ''}</td>,
                         ]
                       })}
                       <td style={{ padding: '6px 6px', textAlign: 'center', color: 'var(--green)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)' }}>{d.totals.attended}</td>
@@ -415,12 +438,25 @@ export default function ReportsView() {
                         background: d.excess > 0 ? 'var(--red-muted)' : d.excess === 0 ? 'var(--green-muted)' : 'transparent',
                         borderRadius: '0',
                       }}>{d.excess}</td>
+                      <td style={{ padding: '4px 4px', textAlign: 'center', borderLeft: '1px solid var(--border)' }}>
+                        <button
+                          onClick={() => syncDay(d.date)}
+                          disabled={syncing === d.date}
+                          className="cursor-pointer"
+                          style={{ background: 'none', border: 'none', color: syncing === d.date ? 'var(--accent)' : 'var(--text-muted)', padding: '2px' }}
+                          title={`Sync attendance for ${d.date}`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={syncing === d.date ? 'animate-spin' : ''}>
+                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
                 {/* Totals row */}
                 <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface)' }}>
-                  <td style={{ padding: '10px 10px', fontWeight: 700, color: 'var(--text)', position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 1 }}>TOTAL</td>
+                  <td style={{ padding: '10px 10px', fontWeight: 700, color: 'var(--text)', position: 'sticky', left: 0, background: 'var(--surface)', zIndex: 1 }} colSpan={1}>TOTAL</td>
                   {studioNames.map(s => {
                     const totA = dailyBreakdown.reduce((sum, d) => sum + (d.studios[s]?.attended || 0), 0)
                     const totX = dailyBreakdown.reduce((sum, d) => sum + (d.studios[s]?.noShow || 0), 0)
@@ -438,6 +474,7 @@ export default function ReportsView() {
                   <td style={{ padding: '10px 6px', textAlign: 'center', color: 'var(--accent)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{dailyBreakdown.reduce((s, d) => s + d.totals.lateCancel, 0)}</td>
                   <td style={{ padding: '10px 6px', textAlign: 'center', color: '#60a5fa', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{dailyBreakdown.reduce((s, d) => s + d.totals.topUp, 0)}</td>
                   <td style={{ padding: '10px 6px', textAlign: 'center', fontWeight: 700, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid var(--border)', color: 'var(--red)' }}>{dailyBreakdown.reduce((s, d) => s + d.excess, 0)}</td>
+                  <td style={{ borderLeft: '1px solid var(--border)' }} />
                 </tr>
               </tbody>
             </table>
@@ -561,6 +598,34 @@ export default function ReportsView() {
           )}
         </div>
       </section>
+
+      {/* Client list popup */}
+      {popup && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setPopup(null)}
+        >
+          <div
+            style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '20px', maxWidth: '440px', width: '100%', maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 48px rgba(0,0,0,0.5)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{popup.title}</h3>
+              <button onClick={() => setPopup(null)} className="cursor-pointer" style={{ background: 'var(--surface)', border: 'none', color: 'var(--text-muted)', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, marginBottom: '8px' }}>{popup.clients.length} client{popup.clients.length !== 1 ? 's' : ''}</div>
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {popup.clients.map((c, i) => (
+                <div key={i} style={{ padding: '8px 0', borderBottom: i < popup.clients.length - 1 ? '1px solid var(--border)' : 'none', fontSize: '13px', color: 'var(--text)' }}>
+                  {c}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
