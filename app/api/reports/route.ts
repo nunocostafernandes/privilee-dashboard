@@ -183,18 +183,9 @@ export async function GET(req: Request) {
 
   const summary = { totalBookings, attended, noShows, lateCancels, earlyCancels, complimentary, topUps }
 
-  // Billable: no-shows and late cancels from complimentary bookings only
-  const billableNoShows = rows.filter(
-    r => r.attendance === 'no_show' && classifications[r.id] === 'complimentary'
-  ).length
-  const billableLateCancels = rows.filter(
-    r => r.type === 'late_cancel' && classifications[r.id] === 'complimentary'
-  ).length
-  const billable = {
-    noShows: billableNoShows,
-    lateCancels: billableLateCancels,
-    total: billableNoShows + billableLateCancels,
-  }
+  // Billable: ALL no-shows + ALL late cancels + excess days
+  const billableNoShows = noShows
+  const billableLateCancels = lateCancels
 
   // Weekly breakdown
   const weekMap: Record<string, {
@@ -294,6 +285,14 @@ export async function GET(req: Request) {
       const excess = Math.max(0, totals.attended - DAILY_CAP)
       return { date, studios: studioCounts, clients: studioClients, totals, excess }
     })
+
+  const totalExcess = dailyBreakdown.reduce((s, d) => s + d.excess, 0)
+  const billable = {
+    noShows: billableNoShows,
+    lateCancels: billableLateCancels,
+    excess: totalExcess,
+    total: billableNoShows + billableLateCancels + totalExcess,
+  }
 
   return NextResponse.json({
     month,

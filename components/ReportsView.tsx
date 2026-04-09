@@ -14,6 +14,7 @@ interface Summary {
 interface Billable {
   noShows: number
   lateCancels: number
+  excess: number
   total: number
 }
 
@@ -268,9 +269,9 @@ export default function ReportsView() {
           display: 'flex', flexDirection: 'column', gap: '12px',
         }}>
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
-            Complimentary bookings only (top-up no-shows/late cancels are not billed)
+            No-shows + Late cancels + Excess (above {dailyCap}/day cap)
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
             <div>
               <span style={{
                 display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
@@ -287,6 +288,15 @@ export default function ReportsView() {
               }}>Late Cancels</span>
               <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--red)' }}>
                 {billable.lateCancels}
+              </span>
+            </div>
+            <div>
+              <span style={{
+                display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px',
+              }}>Excess</span>
+              <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)' }}>
+                {billable.excess}
               </span>
             </div>
             <div>
