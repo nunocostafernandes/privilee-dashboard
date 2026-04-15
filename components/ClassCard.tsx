@@ -13,7 +13,15 @@ interface ClassItem {
   bookingCount: number
 }
 
-interface Visit { clientId: string; name: string; status: string; serviceName: string }
+interface Visit {
+  clientId: string
+  name: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  status: string
+  serviceName: string
+}
 
 interface Props {
   cls: ClassItem
@@ -205,9 +213,16 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                     style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}
                   >
                     <div className="min-w-0">
-                      <span className="text-sm font-medium">{v.name}</span>
+                      <span className="text-sm font-medium truncate block">
+                        {(v.firstName || v.lastName)
+                          ? `${v.firstName ?? ''} ${v.lastName ?? ''}`.trim()
+                          : v.name}
+                      </span>
+                      {v.email && (
+                        <span className="block text-xs truncate" style={{ color: 'var(--text-muted)' }}>{v.email}</span>
+                      )}
                       {v.serviceName
-                        ? <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>{v.serviceName}</span>
+                        ? <span className="block text-xs truncate" style={{ color: 'var(--text-muted)' }}>{v.serviceName}</span>
                         : <span className="block text-xs" style={{ color: 'var(--red)' }}>Unpaid</span>
                       }
                     </div>

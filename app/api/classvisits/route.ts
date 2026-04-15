@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
 
     const clientIds = Array.from(new Set(rawVisits.map(v => v.ClientId).filter(Boolean))) as string[]
     const nameMap: Record<string, string> = {}
+    const detailMap: Record<string, { firstName: string; lastName: string; email: string }> = {}
 
     // Fetch client names in chunks of 10 using repeated ClientIds params
     const token = await getStaffToken(siteId)
@@ -68,8 +69,14 @@ export async function GET(req: NextRequest) {
           const clientData = await clientRes.json()
           for (const c of (clientData.Clients ?? [])) {
             const first = c.FirstName?.trim() ?? ''
-            const lastInit = c.LastName?.charAt(0) ?? ''
+            const last = c.LastName?.trim() ?? ''
+            const lastInit = last.charAt(0) ?? ''
             nameMap[c.Id] = lastInit ? `${first} ${lastInit}.` : first
+            detailMap[c.Id] = {
+              firstName: first,
+              lastName: last,
+              email: c.Email?.trim() ?? '',
+            }
           }
         }
       } catch { /* name lookup best-effort */ }
@@ -78,6 +85,9 @@ export async function GET(req: NextRequest) {
     const visits = rawVisits.map(v => ({
       clientId:    v.ClientId ?? '',
       name:        nameMap[v.ClientId ?? ''] ?? v.ClientId ?? 'Client',
+      firstName:   detailMap[v.ClientId ?? '']?.firstName ?? '',
+      lastName:    detailMap[v.ClientId ?? '']?.lastName ?? '',
+      email:       detailMap[v.ClientId ?? '']?.email ?? '',
       status:      v.AppointmentStatus ?? 'Unknown',
       serviceName: v.ServiceName ?? '',
     }))
