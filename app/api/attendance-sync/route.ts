@@ -13,34 +13,26 @@ interface PrivileeBooking {
   class_date: string
 }
 
-export async function POST(req: Request) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  // Accept optional date param, default to yesterday (Dubai time UTC+4)
-  const dateParam = new URL(req.url).searchParams.get('date')
-  let yesterday: string
-  if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-    yesterday = dateParam
-  } else {
-    const now = new Date()
-    const dubai = new Date(now.getTime() + 4 * 60 * 60 * 1000)
-    dubai.setDate(dubai.getDate() - 1)
-    yesterday = dubai.toISOString().slice(0, 10)
-  }
-
-  // Fetch all Privilee bookings from yesterday that haven't been synced yet
-  const { data: bookings } = await supabase
+async function syncDate(
+  supabase: ReturnType<typeof createClient>,
+  date: string,
+  resync: boolean
+): Promise<{ synced: number; total: number; date: string; errors?: string[] }> {
+  // Fetch bookings for this date (unsynced only, unless resync=true)
+  let query = supabase
     .from('privilee_bookings')
     .select('id, class_id, client_id, studio_site_id, class_date')
     .eq('type', 'booking')
-    .eq('class_date', yesterday)
-    .is('attendance', null)
+    .eq('class_date', date)
+
+  if (!resync) {
+    query = query.is('attendance', null)
+  }
+
+  const { data: bookings } = await query
 
   if (!bookings || bookings.length === 0) {
-    return NextResponse.json({ synced: 0, date: yesterday, message: 'No bookings to sync' })
+    return { synced: 0, total: 0, date, errors: undefined }
   }
 
   // Group bookings by class_id + studio to batch MBO calls
@@ -57,7 +49,6 @@ export async function POST(req: Request) {
   for (const [key, group] of Object.entries(classGroups)) {
     const classId = key.split('-')[0]
     try {
-      // Fetch class visits from MBO (API key only, no staff token needed for past classes)
       const res = await fetch(
         `${MBO_BASE}/class/classvisits?ClassID=${classId}`,
         {
@@ -78,7 +69,6 @@ export async function POST(req: Request) {
       const data = await res.json()
       const visits: { ClientId?: string; AppointmentStatus?: string; SignedIn?: boolean }[] = data.Class?.Visits ?? []
 
-      // Build a map of clientId -> { signedIn, status }
       const visitMap: Record<string, { signedIn: boolean; status: string }> = {}
       for (const v of visits) {
         if (v.ClientId) {
@@ -89,7 +79,6 @@ export async function POST(req: Request) {
         }
       }
 
-      // Update each booking's attendance
       for (const b of group.bookings) {
         const visit = visitMap[b.client_id]
         let attendance: string
@@ -117,12 +106,50 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    synced,
-    total: bookings.length,
-    date: yesterday,
-    errors: errors.length > 0 ? errors : undefined,
-  })
+  return { synced, total: bookings.length, date, errors: errors.length > 0 ? errors : undefined }
+}
+
+function dubaiDate(offsetDays: number): string {
+  const now = new Date()
+  const dubai = new Date(now.getTime() + 4 * 60 * 60 * 1000)
+  dubai.setDate(dubai.getDate() + offsetDays)
+  return dubai.toISOString().slice(0, 10)
+}
+
+export async function POST(req: Request) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const url = new URL(req.url)
+  const mode = url.searchParams.get('mode') // 'hourly' | 'nightly' | null
+  const dateParam = url.searchParams.get('date')
+  const resync = url.searchParams.get('resync') === 'true'
+
+  let dates: string[]
+
+  if (mode === 'hourly') {
+    // Sync today's bookings (catch check-ins as they happen)
+    dates = [dubaiDate(0)]
+  } else if (mode === 'nightly') {
+    // Sync yesterday + 5 days ago (catch late updates), force resync
+    dates = [dubaiDate(-1), dubaiDate(-5)]
+    // Nightly always resyncs (re-check even previously synced bookings)
+    const results = await Promise.all(dates.map(d => syncDate(supabase, d, true)))
+    return NextResponse.json({ mode: 'nightly', results })
+  } else if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    dates = [dateParam]
+  } else {
+    dates = [dubaiDate(-1)]
+  }
+
+  const results = await Promise.all(dates.map(d => syncDate(supabase, d, resync)))
+
+  if (results.length === 1) {
+    return NextResponse.json(results[0])
+  }
+  return NextResponse.json({ results })
 }
 
 // Also support GET for easy testing
