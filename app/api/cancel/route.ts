@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
         clientMobile = original.client_mobile ?? null
       }
 
-      await supabase.from('privilee_bookings').insert({
+      const { error: insertError } = await supabase.from('privilee_bookings').insert({
         type:           lateCancel ? 'late_cancel' : 'early_cancel',
         studio_name:    studioName ?? '',
         studio_site_id: siteId,
@@ -129,6 +129,8 @@ export async function POST(req: NextRequest) {
         client_email:   clientEmail,
         client_mobile:  clientMobile,
       })
+      // Ignore duplicate cancel (unique index)
+      if (insertError && insertError.code !== '23505') throw insertError
     } catch { /* non-fatal */ }
 
     return NextResponse.json({ success: true })

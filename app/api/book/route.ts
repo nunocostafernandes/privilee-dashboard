@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
     const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const classTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
 
-    await supabase.from('privilee_bookings').insert({
+    const { error: insertError } = await supabase.from('privilee_bookings').insert({
       studio_name:    studioName,
       studio_site_id: siteId,
       class_id:       classId,
@@ -225,6 +225,11 @@ export async function POST(req: NextRequest) {
       client_mobile:  mobile ?? null,
       mbo_booking_id: bookingId ?? null,
     })
+
+    // Duplicate booking (unique index violation) -- treat as success
+    if (insertError?.code === '23505') {
+      return NextResponse.json({ success: true, clientId, isNewClient, bookingId, duplicate: true })
+    }
 
     return NextResponse.json({ success: true, clientId, isNewClient, bookingId })
   } catch (err: unknown) {
