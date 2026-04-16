@@ -104,7 +104,11 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
         body: JSON.stringify({
           classId: cls.classId, clientId, siteId, lateCancel,
           studioName, className: cls.className, startTime: cls.startTime,
-          clientName: visits?.find(v => v.clientId === clientId)?.name ?? '',
+          clientName: (() => {
+            const v = visits?.find(v => v.clientId === clientId)
+            if (!v) return ''
+            return (v.firstName || v.lastName) ? `${v.firstName ?? ''} ${v.lastName ?? ''}`.trim() : v.name
+          })(),
         }),
       })
       if (!res.ok) {
