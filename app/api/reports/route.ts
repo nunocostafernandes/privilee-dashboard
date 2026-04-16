@@ -111,7 +111,9 @@ export async function GET(req: Request) {
   const rows = (monthData ?? []) as BookingRow[]
 
   // Classify each booking as complimentary or top_up
-  // Group by client_email + ISO week + emirate
+  // Rule: only ATTENDED or FUTURE/PENDING bookings consume the 1 free slot per week per emirate.
+  // No-shows, late-cancels, early-cancels do NOT consume the slot.
+  // 1st slot-consuming booking = complimentary, 2nd+ = top_up.
   type GroupKey = string
   const groups: Record<GroupKey, BookingRow[]> = {}
 
@@ -125,49 +127,30 @@ export async function GET(req: Request) {
     groups[key].push(row)
   }
 
-  // For each group, sort by created_at, walk through:
-  // first non-early_cancel = complimentary, rest = top_up
+  // A booking consumes the complimentary slot only if:
+  // - type is 'booking' (not a cancel row)
+  // - attendance is 'attended' OR null/undefined (future/pending -- assume will attend)
+  // No-shows, late-cancels, early-cancels do NOT consume the slot.
+  function consumesSlot(row: BookingRow): boolean {
+    if (row.type !== 'booking') return false
+    if (row.attendance === 'no_show') return false
+    return true // attended or null (future/pending)
+  }
+
   const classifications: Record<number, 'complimentary' | 'top_up'> = {}
 
   for (const key of Object.keys(groups)) {
     const groupRows = groups[key].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
-    let complimentaryUsed = false // true when a booking (not cancel) has taken the free slot
+    let slotsUsed = 0
     for (const row of groupRows) {
-      if (row.type === 'early_cancel') {
-        // Early cancels don't consume the slot -- tag based on current state
-        classifications[row.id] = complimentaryUsed ? 'top_up' : 'complimentary'
-        // Don't set complimentaryUsed -- early cancel returns the slot
-        continue
-      }
-      if (row.type === 'late_cancel') {
-        // Late cancel inherits classification from the original booking
-        // If comp slot was used (by the booking this is cancelling), this is complimentary
-        // Late cancel DOES return the comp slot (per Privilee agreement)
-        if (complimentaryUsed) {
-          // This late-cancel is for a booking that was complimentary or a top-up.
-          // Check if there's a matching booking for same client+class in this group
-          const matchingBooking = groupRows.find(
-            r => r.type === 'booking' && r.class_id === row.class_id && r.client_email === row.client_email
-          )
-          if (matchingBooking && classifications[matchingBooking.id] === 'complimentary') {
-            classifications[row.id] = 'complimentary'
-            complimentaryUsed = false // slot returned per agreement
-          } else {
-            classifications[row.id] = 'top_up'
-          }
-        } else {
-          classifications[row.id] = 'complimentary'
-        }
-        continue
-      }
-      // Regular booking
-      if (!complimentaryUsed) {
-        classifications[row.id] = 'complimentary'
-        complimentaryUsed = true
+      if (consumesSlot(row)) {
+        slotsUsed++
+        classifications[row.id] = slotsUsed <= 1 ? 'complimentary' : 'top_up'
       } else {
-        classifications[row.id] = 'top_up'
+        // No-shows, early-cancels, late-cancels: never a top-up
+        classifications[row.id] = 'complimentary'
       }
     }
   }
@@ -183,7 +166,8 @@ export async function GET(req: Request) {
 
   const summary = { totalBookings, attended, noShows, lateCancels, earlyCancels, complimentary, topUps }
 
-  // Billable: ALL no-shows + ALL late cancels + excess days
+  // Billable: no-shows @ 80 AED, late-cancels @ 80 AED, top-ups @ 85 AED
+  // Early-cancels are NOT billable
   const billableNoShows = noShows
   const billableLateCancels = lateCancels
 
@@ -250,15 +234,15 @@ export async function GET(req: Request) {
     } else if (row.type === 'early_cancel') {
       // Early cancels don't appear in daily breakdown
     } else if (row.type === 'booking') {
-      // Top-up is a classification, not mutually exclusive with attendance
-      if (classifications[row.id] === 'top_up') {
-        cell.topUp.push(clientLabel)
-      }
-      // Attendance: attended or no-show (independent of top-up)
       if (row.attendance === 'no_show') {
+        // No-show: penalty but does NOT count toward daily cap or as top-up
         cell.noShow.push(clientLabel)
       } else {
+        // Attended or future/pending: counts toward daily cap
         cell.attended.push(clientLabel)
+        if (classifications[row.id] === 'top_up') {
+          cell.topUp.push(clientLabel)
+        }
       }
     }
   }
@@ -289,9 +273,14 @@ export async function GET(req: Request) {
   const totalExcess = dailyBreakdown.reduce((s, d) => s + d.excess, 0)
   const billable = {
     noShows: billableNoShows,
+    noShowsAed: billableNoShows * 80,
     lateCancels: billableLateCancels,
+    lateCancelsAed: billableLateCancels * 80,
+    topUps: topUps,
+    topUpsAed: topUps * 85,
     excess: totalExcess,
-    total: billableNoShows + billableLateCancels + totalExcess,
+    total: billableNoShows + billableLateCancels + topUps + totalExcess,
+    totalAed: (billableNoShows * 80) + (billableLateCancels * 80) + (topUps * 85),
   }
 
   return NextResponse.json({

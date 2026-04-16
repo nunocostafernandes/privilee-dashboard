@@ -13,9 +13,14 @@ interface Summary {
 
 interface Billable {
   noShows: number
+  noShowsAed: number
   lateCancels: number
+  lateCancelsAed: number
+  topUps: number
+  topUpsAed: number
   excess: number
   total: number
+  totalAed: number
 }
 
 interface WeekRow {
