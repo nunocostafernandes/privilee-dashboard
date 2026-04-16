@@ -131,7 +131,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
         style={{
           background: 'var(--card)',
           border: '1px solid var(--border)',
-          opacity: past ? 0.35 : 1,
+          opacity: past ? 0.6 : 1,
         }}
         onClick={toggle}
       >
