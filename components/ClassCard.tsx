@@ -187,8 +187,12 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
 
         {/* Expanded visits */}
         <div
-          className="overflow-hidden transition-all duration-300"
-          style={{ maxHeight: expanded ? '999px' : '0' }}
+          className="transition-all duration-300"
+          style={{
+            maxHeight: expanded ? '60vh' : '0',
+            overflow: expanded ? 'auto' : 'hidden',
+            WebkitOverflowScrolling: 'touch',
+          }}
         >
           <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
             {loading && (
