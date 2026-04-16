@@ -13,8 +13,8 @@ interface PrivileeBooking {
   class_date: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function syncDate(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   date: string,
   resync: boolean
