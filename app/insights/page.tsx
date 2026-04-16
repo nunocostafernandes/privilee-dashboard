@@ -1,11 +1,13 @@
 'use client'
 import InsightsView from '@/components/InsightsView'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function InsightsPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-10">
         <header className="mb-6">
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <a
               href="/"
@@ -34,6 +36,8 @@ export default function InsightsPage() {
               </p>
               <h1 className="text-xl font-bold tracking-tight leading-none">Insights</h1>
             </div>
+          </div>
+          <ThemeToggle />
           </div>
         </header>
 

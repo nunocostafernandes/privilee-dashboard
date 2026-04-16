@@ -8,6 +8,7 @@ import ClassGrid from '@/components/ClassGrid'
 import RefreshButton from '@/components/RefreshButton'
 import StatsView from '@/components/StatsView'
 import ClientSearch from '@/components/ClientSearch'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const AUTO_REFRESH_MS = 15 * 60 * 1000
 
@@ -166,6 +167,7 @@ export default function Home() {
                   />
                 </>
               )}
+              <ThemeToggle />
             </div>
           </div>
         </header>

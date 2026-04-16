@@ -1,4 +1,5 @@
 'use client'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function FaqPage() {
   return (
@@ -45,9 +46,10 @@ export default function FaqPage() {
                   How to use it · Staff reference
                 </p>
               </div>
+              <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ThemeToggle />
               <button
                 onClick={() => window.print()}
-                className="no-print"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '8px',
                   padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
@@ -60,6 +62,7 @@ export default function FaqPage() {
                 </svg>
                 Save as PDF
               </button>
+              </div>
             </div>
 
             <div style={{ marginTop: '20px', padding: '14px 18px', borderRadius: '10px', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', fontSize: '13px' }}>
