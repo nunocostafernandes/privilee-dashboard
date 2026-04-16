@@ -1,8 +1,8 @@
 const DAY_NAMES  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 const MON_NAMES  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-export function getDateStrip(from: Date): Date[] {
-  return Array.from({ length: 6 }, (_, i) => {
+export function getDateStrip(from: Date, count = 6): Date[] {
+  return Array.from({ length: count }, (_, i) => {
     const d = new Date(from)
     d.setDate(d.getDate() + i)
     return d
