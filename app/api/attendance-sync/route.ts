@@ -13,8 +13,9 @@ interface PrivileeBooking {
   class_date: string
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function syncDate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   date: string,
   resync: boolean
 ): Promise<{ synced: number; total: number; date: string; errors?: string[] }> {
@@ -37,7 +38,7 @@ async function syncDate(
 
   // Group bookings by class_id + studio to batch MBO calls
   const classGroups: Record<string, { siteId: string; bookings: PrivileeBooking[] }> = {}
-  for (const b of bookings) {
+  for (const b of (bookings as PrivileeBooking[])) {
     const key = `${b.class_id}-${b.studio_site_id}`
     if (!classGroups[key]) classGroups[key] = { siteId: b.studio_site_id, bookings: [] }
     classGroups[key].bookings.push(b)
