@@ -148,22 +148,14 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
           {/* Class name */}
           <span className="flex-1 font-semibold text-sm truncate">{cls.className}</span>
 
-          {/* Count pills */}
-          <span className="flex items-center gap-1 shrink-0">
-            <span
-              className="px-2 py-1 rounded-lg text-xs font-bold tabular-nums"
-              style={{ background: pill.bg, color: pill.color }}
-            >
-              {visits !== null ? visits.length : cls.bookingCount}
-            </span>
+          {/* Count pill: total / privilee */}
+          <span
+            className="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 tabular-nums"
+            style={{ background: pill.bg, color: pill.color }}
+          >
+            {visits !== null ? visits.length : cls.bookingCount}
             {(cls.privileeCount != null && cls.privileeCount > 0) && (
-              <span
-                className="px-2 py-1 rounded-lg text-xs font-bold tabular-nums"
-                style={{ background: 'var(--accent-glow)', color: 'var(--accent)' }}
-                title="Privilee bookings"
-              >
-                {cls.privileeCount}
-              </span>
+              <span style={{ color: 'var(--accent)' }}>{` / ${cls.privileeCount}P`}</span>
             )}
           </span>
 
