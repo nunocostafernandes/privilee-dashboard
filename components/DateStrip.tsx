@@ -99,7 +99,7 @@ export default function DateStrip({ active, onChange, dayStats }: Props) {
                       : count > 0 ? 'var(--accent)' : 'var(--text-muted)',
                   }}
                 >
-                  {count > 0 ? `${count}P` : '--'}
+                  {count > 0 ? count : '--'}
                 </span>
               )}
             </button>

@@ -3,14 +3,16 @@ import { mboFetch, mapClass } from '@/lib/mbo-client'
 
 export const dynamic = 'force-dynamic'
 
-async function fetchVisitCount(classId: number, siteId: string): Promise<number> {
+async function fetchVisitCounts(classId: number, siteId: string): Promise<{ total: number; privilee: number }> {
   try {
     const res = await mboFetch('/class/classvisits', siteId, { ClassID: String(classId) })
-    if (!res.ok) return 0
+    if (!res.ok) return { total: 0, privilee: 0 }
     const data = await res.json()
-    return (data.Class?.Visits ?? []).length
+    const visits: { ServiceName?: string }[] = data.Class?.Visits ?? []
+    const privilee = visits.filter(v => (v.ServiceName ?? '').toLowerCase().includes('privilee')).length
+    return { total: visits.length, privilee }
   } catch {
-    return 0
+    return { total: 0, privilee: 0 }
   }
 }
 
@@ -39,12 +41,13 @@ export async function GET(req: NextRequest) {
 
     // Fetch visit counts for all classes in parallel
     const counts = await Promise.all(
-      classes.map((cls: { classId: number }) => fetchVisitCount(cls.classId, siteId))
+      classes.map((cls: { classId: number }) => fetchVisitCounts(cls.classId, siteId))
     )
 
     const classesWithCounts = classes.map((cls: ReturnType<typeof mapClass>, i: number) => ({
       ...cls,
-      bookingCount: counts[i],
+      bookingCount: counts[i].total,
+      privileeCount: counts[i].privilee,
     }))
 
     return NextResponse.json(classesWithCounts)

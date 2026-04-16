@@ -15,6 +15,7 @@ const AUTO_REFRESH_MS = 15 * 60 * 1000
 interface ClassItem {
   classId: number; className: string; startTime: string; endTime: string
   totalBooked: number; maxCapacity: number; waitlistCount: number; bookingCount: number
+  privileeCount?: number
 }
 
 export default function Home() {
