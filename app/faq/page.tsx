@@ -21,7 +21,7 @@ export default function FaqPage() {
       `}</style>
 
       <div className="min-h-screen print-page" style={{ background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-montserrat), sans-serif' }}>
-        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px 80px' }}>
+        <div style={{ maxWidth: '1152px', margin: '0 auto', padding: '40px 24px 80px' }}>
 
           {/* Header */}
           <div style={{ marginBottom: '40px' }}>

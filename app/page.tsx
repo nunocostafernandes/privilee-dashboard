@@ -103,7 +103,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-      <div className="max-w-3xl mx-auto px-4 pt-6 pb-10">
+      <div className="max-w-6xl mx-auto px-4 pt-6 pb-10">
 
         {/* Header */}
         <header className="mb-6">
