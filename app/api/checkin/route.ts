@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
 const TOKEN_TTL = 6 * 60 * 60 * 1000
@@ -20,16 +19,15 @@ async function getStaffToken(siteId: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { visitId, clientId, siteId, signedIn, classId, classDate } = await req.json()
+  const { visitId, siteId, signedIn } = await req.json()
 
-  if (!visitId || !clientId || !siteId) {
-    return NextResponse.json({ error: 'Missing visitId, clientId, or siteId' }, { status: 400 })
+  if (!visitId || !siteId) {
+    return NextResponse.json({ error: 'Missing visitId or siteId' }, { status: 400 })
   }
 
   try {
     const token = await getStaffToken(siteId)
 
-    // Call MBO updateclientvisit to toggle SignedIn
     const mboRes = await fetch(`${MBO_BASE}/client/updateclientvisit`, {
       method: 'POST',
       headers: {
@@ -50,24 +48,6 @@ export async function POST(req: NextRequest) {
         { error: err?.Error?.Message ?? `MBO returned ${mboRes.status}` },
         { status: 502 }
       )
-    }
-
-    // Also update Supabase attendance (best-effort)
-    if (classId && classDate) {
-      try {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        )
-        const attendance = signedIn ? 'attended' : null
-        await supabase
-          .from('privilee_bookings')
-          .update({ attendance })
-          .eq('client_id', clientId)
-          .eq('class_id', classId)
-          .eq('class_date', classDate)
-          .eq('type', 'booking')
-      } catch { /* non-fatal */ }
     }
 
     return NextResponse.json({ success: true, signedIn })

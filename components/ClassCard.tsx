@@ -134,14 +134,11 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
     const newSignedIn = !v.signedIn
     setCheckingInId(v.clientId)
     try {
-      const d = new Date(cls.startTime)
-      const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       const res = await fetch('/api/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          visitId: v.visitId, clientId: v.clientId, siteId,
-          signedIn: newSignedIn, classId: cls.classId, classDate,
+          visitId: v.visitId, siteId, signedIn: newSignedIn,
         }),
       })
       if (!res.ok) {
