@@ -22,6 +22,8 @@ interface Visit {
   email?: string
   status: string
   serviceName: string
+  visitId?: number | null
+  signedIn?: boolean
 }
 
 interface Props {
@@ -58,6 +60,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
   const [error, setError]             = useState(false)
   const [bookingOpen, setBookingOpen] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [checkingInId, setCheckingInId] = useState<string | null>(null)
 
   useEffect(() => { setVisits(null) }, [refreshKey])
 
@@ -122,6 +125,37 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
       alert('Cancel failed')
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  async function handleCheckin(e: React.MouseEvent, v: Visit) {
+    e.stopPropagation()
+    if (!v.visitId) return
+    const newSignedIn = !v.signedIn
+    setCheckingInId(v.clientId)
+    try {
+      const d = new Date(cls.startTime)
+      const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const res = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitId: v.visitId, clientId: v.clientId, siteId,
+          signedIn: newSignedIn, classId: cls.classId, classDate,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error ?? 'Check-in failed')
+      } else {
+        setVisits(prev => prev ? prev.map(visit =>
+          visit.clientId === v.clientId ? { ...visit, signedIn: newSignedIn } : visit
+        ) : prev)
+      }
+    } catch {
+      alert('Check-in failed')
+    } finally {
+      setCheckingInId(null)
     }
   }
 
@@ -239,6 +273,20 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       }
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Check-in toggle */}
+                      {privOnly && v.visitId && checkingInId === v.clientId ? (
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
+                      ) : privOnly && v.visitId && v.status !== 'LateCanceled' && (
+                        <button
+                          onClick={e => handleCheckin(e, v)}
+                          className="text-xs font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                          style={v.signedIn
+                            ? { color: 'var(--green)', background: 'var(--green-muted)' }
+                            : { color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)' }
+                          }
+                        >{v.signedIn ? 'Checked In' : 'Check In'}</button>
+                      )}
+                      {/* Cancel buttons */}
                       {privOnly && cancellingId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
                       ) : privOnly && v.status !== 'LateCanceled' && (

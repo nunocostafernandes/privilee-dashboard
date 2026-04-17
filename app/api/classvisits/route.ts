@@ -22,9 +22,11 @@ async function getStaffToken(siteId: string): Promise<string> {
 }
 
 interface RawVisit {
+  Id?: number
   ClientId?: string
   AppointmentStatus?: string
   ServiceName?: string
+  SignedIn?: boolean
 }
 
 export async function GET(req: NextRequest) {
@@ -90,6 +92,8 @@ export async function GET(req: NextRequest) {
       email:       detailMap[v.ClientId ?? '']?.email ?? '',
       status:      v.AppointmentStatus ?? 'Unknown',
       serviceName: v.ServiceName ?? '',
+      visitId:     v.Id ?? null,
+      signedIn:    v.SignedIn === true,
     }))
 
     return NextResponse.json(visits)
