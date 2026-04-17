@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         VisitId: visitId,
         SignedIn: signedIn ?? true,
-        Execute: true,
       }),
     })
 
