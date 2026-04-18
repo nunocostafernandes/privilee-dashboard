@@ -87,7 +87,17 @@ async function syncDate(
         let attendance: string
 
         if (!visit) {
-          attendance = 'no_show'
+          // Client not in MBO roster -- check if a cancel row exists before marking no_show
+          const { data: cancelRow } = await supabase
+            .from('privilee_bookings')
+            .select('type')
+            .eq('client_id', b.client_id)
+            .eq('class_id', b.class_id)
+            .eq('class_date', b.class_date)
+            .in('type', ['early_cancel', 'late_cancel'])
+            .limit(1)
+            .maybeSingle()
+          attendance = cancelRow ? cancelRow.type : 'no_show'
         } else if (visit.signedIn) {
           attendance = 'attended'
         } else if (visit.status === 'LateCanceled' || visit.status === 'Cancelled') {
