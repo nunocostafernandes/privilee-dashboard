@@ -211,7 +211,7 @@ export async function GET(req: Request) {
     classDate: row.class_date,
     classTime: row.class_time,
     studioName: row.studio_name,
-  })).sort((a, b) => a.classDate.localeCompare(b.classDate) || a.classTime.localeCompare(b.classTime))
+  })).sort((a, b) => b.classDate.localeCompare(a.classDate) || b.classTime.localeCompare(a.classTime))
 
   // Daily breakdown by studio
   const DAILY_CAP = 85
