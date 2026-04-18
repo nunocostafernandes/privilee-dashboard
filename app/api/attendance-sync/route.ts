@@ -11,6 +11,12 @@ interface PrivileeBooking {
   client_id: string
   studio_site_id: string
   class_date: string
+  studio_name: string
+  class_name: string
+  class_time: string
+  client_name: string
+  client_email: string
+  client_mobile: string | null
 }
 
 async function syncDate(
@@ -23,7 +29,7 @@ async function syncDate(
   // Always skip bookings manually marked as late_cancel/early_cancel (correction from cancel API)
   let query = supabase
     .from('privilee_bookings')
-    .select('id, class_id, client_id, studio_site_id, class_date')
+    .select('id, class_id, client_id, studio_site_id, class_date, studio_name, class_name, class_time, client_name, client_email, client_mobile')
     .eq('type', 'booking')
     .eq('class_date', date)
     .not('attendance', 'in', '("late_cancel","early_cancel")')
@@ -87,7 +93,8 @@ async function syncDate(
         let attendance: string
 
         if (!visit) {
-          // Client not in MBO roster -- check if a cancel row exists before marking no_show
+          // Client not in MBO roster -- early cancel is the only action that removes from roster.
+          // Check for existing cancel row first; if none, assume early cancel.
           const { data: cancelRow } = await supabase
             .from('privilee_bookings')
             .select('type')
@@ -97,7 +104,25 @@ async function syncDate(
             .in('type', ['early_cancel', 'late_cancel'])
             .limit(1)
             .maybeSingle()
-          attendance = cancelRow ? cancelRow.type : 'no_show'
+          if (cancelRow) {
+            attendance = cancelRow.type
+          } else {
+            attendance = 'early_cancel'
+            // Insert the missing early_cancel row so reports are complete
+            await supabase.from('privilee_bookings').insert({
+              type: 'early_cancel',
+              studio_site_id: b.studio_site_id,
+              studio_name: b.studio_name,
+              class_id: b.class_id,
+              class_name: b.class_name,
+              class_date: b.class_date,
+              class_time: b.class_time,
+              client_id: b.client_id,
+              client_name: b.client_name,
+              client_email: b.client_email,
+              client_mobile: b.client_mobile,
+            }).then(() => {}).catch(() => {}) // best-effort, unique index prevents duplicates
+          }
         } else if (visit.signedIn) {
           attendance = 'attended'
         } else if (visit.status === 'LateCanceled' || visit.status === 'Cancelled') {
