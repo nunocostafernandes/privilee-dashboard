@@ -93,7 +93,6 @@ export async function GET(req: Request) {
 
   // Batch fetch client details for missing clients
   if (missing.length > 0) {
-    const uniqueClientIds = Array.from(new Set(missing.map(m => m.clientId)))
     const clientMap: Record<string, { first: string; last: string; email: string }> = {}
 
     // Group by studio to use the right siteId for client lookup
