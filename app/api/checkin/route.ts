@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
 const TOKEN_TTL = 6 * 60 * 60 * 1000
@@ -19,7 +20,7 @@ async function getStaffToken(siteId: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { visitId, siteId, signedIn } = await req.json()
+  const { visitId, siteId, signedIn, correction, clientId, classId, startTime } = await req.json()
 
   if (!visitId || !siteId) {
     return NextResponse.json({ error: 'Missing visitId or siteId' }, { status: 400 })
@@ -48,6 +49,36 @@ export async function POST(req: NextRequest) {
         { error: err?.Error?.Message ?? `MBO returned ${mboRes.status}` },
         { status: 502 }
       )
+    }
+
+    // If correcting a late cancel, clean up Supabase
+    if (correction && clientId && classId) {
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        const d = startTime ? new Date(startTime) : new Date()
+        const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+        // Delete the late_cancel row
+        await supabase
+          .from('privilee_bookings')
+          .delete()
+          .eq('client_id', clientId)
+          .eq('class_id', classId)
+          .eq('class_date', classDate)
+          .in('type', ['late_cancel', 'early_cancel'])
+
+        // Reset the original booking attendance
+        await supabase
+          .from('privilee_bookings')
+          .update({ attendance: 'attended' })
+          .eq('client_id', clientId)
+          .eq('class_id', classId)
+          .eq('class_date', classDate)
+          .eq('type', 'booking')
+      } catch { /* non-fatal */ }
     }
 
     return NextResponse.json({ success: true, signedIn })

@@ -59,7 +59,7 @@ async function voidPrivileeCredit(token: string, siteId: string, clientId: strin
 }
 
 export async function POST(req: NextRequest) {
-  const { classId, clientId, siteId, lateCancel, studioName, className, startTime, clientName } = await req.json()
+  const { classId, clientId, siteId, lateCancel, studioName, className, startTime, clientName, alreadyCancelled } = await req.json()
 
   if (!classId || !clientId || !siteId) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -68,24 +68,26 @@ export async function POST(req: NextRequest) {
   try {
     const token = await getStaffToken(siteId)
 
-    // Cancel the booking
-    const res = await fetch(`${MBO_BASE}/class/removeclientfromclass`, {
-      method: 'POST',
-      headers: headers(token, siteId),
-      body: JSON.stringify({
-        ClassId: classId,
-        ClientId: clientId,
-        LateCancel: lateCancel ?? false,
-        SendEmail: false,
-      }),
-    })
+    // If correcting from late cancel to early cancel, skip MBO call (already cancelled)
+    if (!alreadyCancelled) {
+      const res = await fetch(`${MBO_BASE}/class/removeclientfromclass`, {
+        method: 'POST',
+        headers: headers(token, siteId),
+        body: JSON.stringify({
+          ClassId: classId,
+          ClientId: clientId,
+          LateCancel: lateCancel ?? false,
+          SendEmail: false,
+        }),
+      })
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err?.Error?.Message ?? 'Failed to cancel booking')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.Error?.Message ?? 'Failed to cancel booking')
+      }
     }
 
-    // For early cancel only: void the restored Privilee credit
+    // For early cancel: void the restored Privilee credit
     if (!lateCancel) {
       await voidPrivileeCredit(token, siteId, clientId)
     }
@@ -100,46 +102,66 @@ export async function POST(req: NextRequest) {
       const classDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       const classTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
 
-      // Look up email/mobile from the original booking
-      let clientEmail = ''
-      let clientMobile: string | null = null
-      const { data: original } = await supabase
-        .from('privilee_bookings')
-        .select('client_email, client_mobile')
-        .eq('client_id', clientId)
-        .eq('type', 'booking')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-      if (original) {
-        clientEmail = original.client_email ?? ''
-        clientMobile = original.client_mobile ?? null
+      if (alreadyCancelled) {
+        // Correction: update existing late_cancel row to early_cancel
+        await supabase
+          .from('privilee_bookings')
+          .update({ type: 'early_cancel' })
+          .eq('client_id', clientId)
+          .eq('class_id', classId)
+          .eq('class_date', classDate)
+          .eq('type', 'late_cancel')
+
+        // Update original booking attendance
+        await supabase
+          .from('privilee_bookings')
+          .update({ attendance: 'early_cancel' })
+          .eq('client_id', clientId)
+          .eq('class_id', classId)
+          .eq('class_date', classDate)
+          .eq('type', 'booking')
+      } else {
+        // Normal cancel: look up email/mobile from the original booking
+        let clientEmail = ''
+        let clientMobile: string | null = null
+        const { data: original } = await supabase
+          .from('privilee_bookings')
+          .select('client_email, client_mobile')
+          .eq('client_id', clientId)
+          .eq('type', 'booking')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        if (original) {
+          clientEmail = original.client_email ?? ''
+          clientMobile = original.client_mobile ?? null
+        }
+
+        const { error: insertError } = await supabase.from('privilee_bookings').insert({
+          type:           lateCancel ? 'late_cancel' : 'early_cancel',
+          studio_name:    studioName ?? '',
+          studio_site_id: siteId,
+          class_id:       classId,
+          class_name:     className ?? '',
+          class_date:     classDate,
+          class_time:     classTime,
+          client_id:      clientId,
+          client_name:    clientName ?? '',
+          client_email:   clientEmail,
+          client_mobile:  clientMobile,
+        })
+        // Ignore duplicate cancel (unique index)
+        if (insertError && insertError.code !== '23505') throw insertError
+
+        // Mark the original booking so attendance sync won't overwrite it as no_show
+        await supabase
+          .from('privilee_bookings')
+          .update({ attendance: lateCancel ? 'late_cancel' : 'early_cancel' })
+          .eq('client_id', clientId)
+          .eq('class_id', classId)
+          .eq('class_date', classDate)
+          .eq('type', 'booking')
       }
-
-      const { error: insertError } = await supabase.from('privilee_bookings').insert({
-        type:           lateCancel ? 'late_cancel' : 'early_cancel',
-        studio_name:    studioName ?? '',
-        studio_site_id: siteId,
-        class_id:       classId,
-        class_name:     className ?? '',
-        class_date:     classDate,
-        class_time:     classTime,
-        client_id:      clientId,
-        client_name:    clientName ?? '',
-        client_email:   clientEmail,
-        client_mobile:  clientMobile,
-      })
-      // Ignore duplicate cancel (unique index)
-      if (insertError && insertError.code !== '23505') throw insertError
-
-      // Mark the original booking so attendance sync won't overwrite it as no_show
-      await supabase
-        .from('privilee_bookings')
-        .update({ attendance: lateCancel ? 'late_cancel' : 'early_cancel' })
-        .eq('client_id', clientId)
-        .eq('class_id', classId)
-        .eq('class_date', classDate)
-        .eq('type', 'booking')
     } catch { /* non-fatal */ }
 
     return NextResponse.json({ success: true })

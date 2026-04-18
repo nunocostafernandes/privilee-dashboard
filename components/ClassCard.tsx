@@ -98,7 +98,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
     setBookingOpen(true)
   }
 
-  async function handleCancel(e: React.MouseEvent, clientId: string, lateCancel: boolean) {
+  async function handleCancel(e: React.MouseEvent, clientId: string, lateCancel: boolean, alreadyCancelled?: boolean) {
     e.stopPropagation()
     setCancellingId(clientId)
     try {
@@ -108,6 +108,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
         body: JSON.stringify({
           classId: cls.classId, clientId, siteId, lateCancel,
           studioName, className: cls.className, startTime: cls.startTime,
+          alreadyCancelled: alreadyCancelled ?? false,
           clientName: (() => {
             const v = visits?.find(v => v.clientId === clientId)
             if (!v) return ''
@@ -131,7 +132,8 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
   async function handleCheckin(e: React.MouseEvent, v: Visit) {
     e.stopPropagation()
     if (!v.visitId) return
-    const newSignedIn = !v.signedIn
+    const isCancelled = v.status === 'Cancelled' || v.status === 'LateCanceled'
+    const newSignedIn = isCancelled ? true : !v.signedIn
     setCheckingInId(v.clientId)
     try {
       const res = await fetch('/api/checkin', {
@@ -139,6 +141,12 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           visitId: v.visitId, siteId, signedIn: newSignedIn,
+          ...(isCancelled ? {
+            correction: true,
+            clientId: v.clientId,
+            classId: cls.classId,
+            startTime: cls.startTime,
+          } : {}),
         }),
       })
       if (!res.ok) {
@@ -146,7 +154,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
         alert(data.error ?? 'Check-in failed')
       } else {
         setVisits(prev => prev ? prev.map(visit =>
-          visit.clientId === v.clientId ? { ...visit, signedIn: newSignedIn } : visit
+          visit.clientId === v.clientId ? { ...visit, signedIn: newSignedIn, status: 'Booked' } : visit
         ) : prev)
       }
     } catch {
@@ -280,7 +288,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       {/* Check-in toggle */}
                       {privOnly && v.visitId && checkingInId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
-                      ) : privOnly && v.visitId && v.status !== 'LateCanceled' && v.status !== 'Cancelled' && (
+                      ) : privOnly && v.visitId && (
                         <button
                           onClick={e => handleCheckin(e, v)}
                           className="text-xs font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer"
@@ -293,7 +301,13 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       {/* Cancel buttons */}
                       {privOnly && cancellingId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
-                      ) : privOnly && v.status !== 'LateCanceled' && v.status !== 'Cancelled' && (
+                      ) : privOnly && (v.status === 'Cancelled' || v.status === 'LateCanceled') ? (
+                        <button
+                          onClick={e => handleCancel(e, v.clientId, false, true)}
+                          className="text-xs font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                          style={{ color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)' }}
+                        >Early</button>
+                      ) : privOnly && (
                         <div className="flex gap-1">
                           <button
                             onClick={e => handleCancel(e, v.clientId, false)}
