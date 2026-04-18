@@ -134,6 +134,8 @@ export async function GET(req: Request) {
   function consumesSlot(row: BookingRow): boolean {
     if (row.type !== 'booking') return false
     if (row.attendance === 'no_show') return false
+    if (row.attendance === 'early_cancel') return false
+    if (row.attendance === 'late_cancel') return false
     return true // attended or null (future/pending)
   }
 
@@ -155,14 +157,17 @@ export async function GET(req: Request) {
     }
   }
 
-  // Summary
-  const totalBookings = rows.length
-  const attended = rows.filter(r => r.attendance === 'attended').length
-  const noShows = rows.filter(r => r.attendance === 'no_show').length
-  const lateCancels = rows.filter(r => r.type === 'late_cancel').length
-  const earlyCancels = rows.filter(r => r.type === 'early_cancel').length
-  const complimentary = rows.filter(r => classifications[r.id] === 'complimentary').length
-  const topUps = rows.filter(r => classifications[r.id] === 'top_up').length
+  // Summary -- exclude booking rows that were cancelled (avoid double-counting)
+  const visibleRows = rows.filter(r =>
+    !(r.type === 'booking' && (r.attendance === 'early_cancel' || r.attendance === 'late_cancel'))
+  )
+  const totalBookings = visibleRows.length
+  const attended = visibleRows.filter(r => r.attendance === 'attended').length
+  const noShows = visibleRows.filter(r => r.attendance === 'no_show').length
+  const lateCancels = visibleRows.filter(r => r.type === 'late_cancel').length
+  const earlyCancels = visibleRows.filter(r => r.type === 'early_cancel').length
+  const complimentary = visibleRows.filter(r => classifications[r.id] === 'complimentary').length
+  const topUps = visibleRows.filter(r => classifications[r.id] === 'top_up').length
 
   const summary = { totalBookings, attended, noShows, lateCancels, earlyCancels, complimentary, topUps }
 
@@ -198,8 +203,10 @@ export async function GET(req: Request) {
 
   const weeklyBreakdown = Object.values(weekMap).sort((a, b) => a.weekStart.localeCompare(b.weekStart))
 
-  // Client details
-  const clientDetails = rows.map(row => ({
+  // Client details -- exclude booking rows that were cancelled (the cancel row already shows them)
+  const clientDetails = rows.filter(row =>
+    !(row.type === 'booking' && (row.attendance === 'early_cancel' || row.attendance === 'late_cancel'))
+  ).map(row => ({
     clientName: row.client_name,
     clientEmail: row.client_email,
     emirate: getEmirate(row.studio_name),
@@ -237,6 +244,8 @@ export async function GET(req: Request) {
       if (row.attendance === 'no_show') {
         // No-show: penalty but does NOT count toward daily cap or as top-up
         cell.noShow.push(clientLabel)
+      } else if (row.attendance === 'early_cancel' || row.attendance === 'late_cancel') {
+        // Cancelled bookings: don't count toward daily cap
       } else {
         // Attended or future/pending: counts toward daily cap
         cell.attended.push(clientLabel)
