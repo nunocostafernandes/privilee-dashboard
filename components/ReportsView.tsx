@@ -139,6 +139,9 @@ export default function ReportsView() {
   const [filterStudio, setFilterStudio] = useState('')
   const [filterDate, setFilterDate] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [discrepancies, setDiscrepancies] = useState<{ clientId: string; firstName: string; lastName: string; email: string; className: string; classTime: string; studioName: string; signedIn: boolean }[] | null>(null)
+  const [discLoading, setDiscLoading] = useState(false)
+  const [discDate, setDiscDate] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -290,6 +293,96 @@ export default function ReportsView() {
         <KPICard label="Complimentary" value={summary.complimentary} color="var(--text)" />
         <KPICard label="Top Ups" value={summary.topUps} color="#60a5fa" />
       </div>
+
+      {/* Discrepancy Checker */}
+      <section>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <SectionTitle>MBO Discrepancy Check</SectionTitle>
+          <input
+            type="date"
+            value={discDate}
+            onChange={e => setDiscDate(e.target.value)}
+            style={{
+              padding: '6px 10px', fontSize: '12px', background: 'var(--surface)',
+              color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px',
+              outline: 'none',
+            }}
+          />
+          <button
+            onClick={async () => {
+              if (!discDate) return
+              setDiscLoading(true)
+              setDiscrepancies(null)
+              try {
+                const res = await fetch(`/api/discrepancies?date=${discDate}`, { cache: 'no-store' })
+                const d = await res.json()
+                setDiscrepancies(d.mboMissing ?? [])
+              } catch { setDiscrepancies([]) }
+              setDiscLoading(false)
+            }}
+            disabled={discLoading || !discDate}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+            style={{
+              background: discLoading ? 'var(--surface)' : 'var(--accent)',
+              color: discLoading ? 'var(--text-muted)' : '#fff',
+              border: 'none',
+            }}
+          >
+            {discLoading ? 'Checking...' : 'Check'}
+          </button>
+        </div>
+        {discrepancies !== null && (
+          <div style={{ ...cardStyle }}>
+            {discrepancies.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--green)', fontWeight: 600 }}>
+                No discrepancies -- MBO and portal records match.
+              </p>
+            ) : (
+              <>
+                <p style={{ fontSize: '12px', color: 'var(--red)', fontWeight: 600, marginBottom: '12px' }}>
+                  {discrepancies.length} client{discrepancies.length !== 1 ? 's' : ''} found in MBO but missing from portal records:
+                </p>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        {['Client', 'Email', 'Class', 'Time', 'Studio', 'Status'].map(h => (
+                          <th key={h} style={{
+                            padding: '8px 10px', textAlign: 'left', fontSize: '10px', fontWeight: 700,
+                            textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)',
+                          }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {discrepancies.map((d, i) => (
+                        <tr key={`${d.clientId}-${d.classTime}-${i}`} style={{
+                          borderBottom: i < discrepancies.length - 1 ? '1px solid var(--border)' : 'none',
+                        }}>
+                          <td style={{ padding: '8px 10px', fontWeight: 500, color: 'var(--text)' }}>
+                            {d.firstName} {d.lastName}
+                          </td>
+                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{d.email}</td>
+                          <td style={{ padding: '8px 10px', color: 'var(--text)' }}>{d.className}</td>
+                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{d.classTime}</td>
+                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{d.studioName}</td>
+                          <td style={{ padding: '8px 10px' }}>
+                            <Badge
+                              text={d.signedIn ? 'Checked In' : 'Not Signed'}
+                              color={d.signedIn ? 'var(--green)' : 'var(--text-muted)'}
+                              bg={d.signedIn ? 'var(--green-muted)' : 'rgba(255,255,255,0.08)'}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* 2. Weekly Breakdown */}
       <section>
