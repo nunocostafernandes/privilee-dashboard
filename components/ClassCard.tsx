@@ -270,6 +270,13 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       }
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Late Cancelled pill */}
+                      {privOnly && (v.status === 'Cancelled' || v.status === 'LateCanceled') && (
+                        <span
+                          className="text-xs font-medium px-2.5 py-1 rounded-md"
+                          style={{ color: 'var(--red)', background: 'var(--red-muted)' }}
+                        >Late Cancelled</span>
+                      )}
                       {/* Check-in toggle */}
                       {privOnly && v.visitId && checkingInId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
