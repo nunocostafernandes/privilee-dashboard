@@ -141,7 +141,10 @@ export default function ReportsView() {
   const [filterStatus, setFilterStatus] = useState('')
   const [discrepancies, setDiscrepancies] = useState<{ clientId: string; firstName: string; lastName: string; email: string; className: string; classTime: string; studioName: string; signedIn: boolean }[] | null>(null)
   const [discLoading, setDiscLoading] = useState(false)
-  const [discDate, setDiscDate] = useState('')
+  const [discDate, setDiscDate] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
 
   useEffect(() => {
     setLoading(true)
@@ -330,7 +333,7 @@ export default function ReportsView() {
                 border: 'none',
               }}
             >
-              {discLoading ? 'Checking MBO...' : discDate ? 'Check vs MBO' : 'Check Today vs MBO'}
+              {discLoading ? 'Checking MBO...' : 'Check vs MBO'}
             </button>
           </div>
         </div>
