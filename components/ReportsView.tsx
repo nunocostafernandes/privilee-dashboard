@@ -136,6 +136,9 @@ export default function ReportsView() {
   const [popup, setPopup] = useState<{ title: string; clients: string[] } | null>(null)
   const [syncing, setSyncing] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [filterStudio, setFilterStudio] = useState('')
+  const [filterDate, setFilterDate] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -223,10 +226,24 @@ export default function ReportsView() {
 
   const defaultMonth = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` })()
 
+  const uniqueDates = Array.from(new Set(clientDetails.map(c => c.classDate))).sort().reverse()
+
   const filtered = clientDetails.filter(c => {
-    if (!search) return true
-    const q = search.toLowerCase()
-    return c.clientName.toLowerCase().includes(q) || c.clientEmail.toLowerCase().includes(q)
+    if (search) {
+      const q = search.toLowerCase()
+      if (!c.clientName.toLowerCase().includes(q) && !c.clientEmail.toLowerCase().includes(q)) return false
+    }
+    if (filterStudio && !c.studioName.includes(filterStudio)) return false
+    if (filterDate && c.classDate !== filterDate) return false
+    if (filterStatus) {
+      if (filterStatus === 'booking' && c.type !== 'booking') return false
+      if (filterStatus === 'late_cancel' && c.type !== 'late_cancel') return false
+      if (filterStatus === 'early_cancel' && c.type !== 'early_cancel') return false
+      if (filterStatus === 'attended' && c.attendance !== 'attended') return false
+      if (filterStatus === 'no_show' && c.attendance !== 'no_show') return false
+      if (filterStatus === 'top_up' && c.classification !== 'top_up') return false
+    }
+    return true
   })
 
   const displayed = showAll ? filtered : filtered.slice(0, 50)
@@ -240,7 +257,7 @@ export default function ReportsView() {
           {availableMonths.map(m => (
             <button
               key={m}
-              onClick={() => { setMonth(m); setShowAll(false); setSearch('') }}
+              onClick={() => { setMonth(m); setShowAll(false); setSearch(''); setFilterStudio(''); setFilterDate(''); setFilterStatus('') }}
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
               style={{
                 background: month === m ? 'var(--accent)' : 'var(--surface)',
@@ -471,8 +488,8 @@ export default function ReportsView() {
           </button>
         </div>
 
-        {/* Search */}
-        <div style={{ marginBottom: '12px' }}>
+        {/* Search + Filters */}
+        <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <input
             type="text"
             placeholder="Search by name or email..."
@@ -485,6 +502,69 @@ export default function ReportsView() {
               outline: 'none',
             }}
           />
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <select
+              value={filterStudio}
+              onChange={e => { setFilterStudio(e.target.value); setShowAll(false) }}
+              style={{
+                padding: '8px 12px', fontSize: '12px', fontWeight: 500,
+                background: 'var(--surface)', color: filterStudio ? 'var(--text)' : 'var(--text-muted)',
+                border: '1px solid var(--border)', borderRadius: '8px',
+                outline: 'none', cursor: 'pointer', minWidth: '140px',
+              }}
+            >
+              <option value="">All Locations</option>
+              <option value="Alserkal">Alserkal Avenue</option>
+              <option value="Town Square">Town Square</option>
+              <option value="Abu Dhabi">Abu Dhabi</option>
+            </select>
+            <select
+              value={filterDate}
+              onChange={e => { setFilterDate(e.target.value); setShowAll(false) }}
+              style={{
+                padding: '8px 12px', fontSize: '12px', fontWeight: 500,
+                background: 'var(--surface)', color: filterDate ? 'var(--text)' : 'var(--text-muted)',
+                border: '1px solid var(--border)', borderRadius: '8px',
+                outline: 'none', cursor: 'pointer', minWidth: '140px',
+              }}
+            >
+              <option value="">All Dates</option>
+              {uniqueDates.map(d => (
+                <option key={d} value={d}>{formatShortDate(d)}</option>
+              ))}
+            </select>
+            <select
+              value={filterStatus}
+              onChange={e => { setFilterStatus(e.target.value); setShowAll(false) }}
+              style={{
+                padding: '8px 12px', fontSize: '12px', fontWeight: 500,
+                background: 'var(--surface)', color: filterStatus ? 'var(--text)' : 'var(--text-muted)',
+                border: '1px solid var(--border)', borderRadius: '8px',
+                outline: 'none', cursor: 'pointer', minWidth: '140px',
+              }}
+            >
+              <option value="">All Status</option>
+              <option value="booking">Booking</option>
+              <option value="attended">Attended</option>
+              <option value="no_show">No Show</option>
+              <option value="late_cancel">Late Cancel</option>
+              <option value="early_cancel">Early Cancel</option>
+              <option value="top_up">Top Up</option>
+            </select>
+            {(filterStudio || filterDate || filterStatus) && (
+              <button
+                onClick={() => { setFilterStudio(''); setFilterDate(''); setFilterStatus(''); setShowAll(false) }}
+                className="cursor-pointer"
+                style={{
+                  padding: '8px 12px', fontSize: '12px', fontWeight: 600,
+                  background: 'none', color: 'var(--accent)',
+                  border: '1px solid var(--accent)', borderRadius: '8px',
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
