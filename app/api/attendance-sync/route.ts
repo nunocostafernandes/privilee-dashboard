@@ -88,7 +88,7 @@ async function syncDate(
           attendance = 'no_show'
         } else if (visit.signedIn) {
           attendance = 'attended'
-        } else if (visit.status === 'LateCanceled') {
+        } else if (visit.status === 'LateCanceled' || visit.status === 'Cancelled') {
           attendance = 'late_cancel'
         } else {
           attendance = 'no_show'

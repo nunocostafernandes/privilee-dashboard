@@ -273,7 +273,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       {/* Check-in toggle */}
                       {privOnly && v.visitId && checkingInId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
-                      ) : privOnly && v.visitId && v.status !== 'LateCanceled' && (
+                      ) : privOnly && v.visitId && v.status !== 'LateCanceled' && v.status !== 'Cancelled' && (
                         <button
                           onClick={e => handleCheckin(e, v)}
                           className="text-xs font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer"
@@ -286,7 +286,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
                       {/* Cancel buttons */}
                       {privOnly && cancellingId === v.clientId ? (
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>...</span>
-                      ) : privOnly && v.status !== 'LateCanceled' && (
+                      ) : privOnly && v.status !== 'LateCanceled' && v.status !== 'Cancelled' && (
                         <div className="flex gap-1">
                           <button
                             onClick={e => handleCancel(e, v.clientId, false)}

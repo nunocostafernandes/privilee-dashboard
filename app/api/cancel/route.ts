@@ -131,6 +131,15 @@ export async function POST(req: NextRequest) {
       })
       // Ignore duplicate cancel (unique index)
       if (insertError && insertError.code !== '23505') throw insertError
+
+      // Mark the original booking so attendance sync won't overwrite it as no_show
+      await supabase
+        .from('privilee_bookings')
+        .update({ attendance: lateCancel ? 'late_cancel' : 'early_cancel' })
+        .eq('client_id', clientId)
+        .eq('class_id', classId)
+        .eq('class_date', classDate)
+        .eq('type', 'booking')
     } catch { /* non-fatal */ }
 
     return NextResponse.json({ success: true })
