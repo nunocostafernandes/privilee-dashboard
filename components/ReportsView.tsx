@@ -294,61 +294,69 @@ export default function ReportsView() {
         <KPICard label="Top Ups" value={summary.topUps} color="#60a5fa" />
       </div>
 
-      {/* Discrepancy Checker */}
+      {/* MBO Discrepancy Check */}
       <section>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-          <SectionTitle>MBO Discrepancy Check</SectionTitle>
-          <input
-            type="date"
-            value={discDate}
-            onChange={e => setDiscDate(e.target.value)}
-            style={{
-              padding: '6px 10px', fontSize: '12px', background: 'var(--surface)',
-              color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px',
-              outline: 'none',
-            }}
-          />
-          <button
-            onClick={async () => {
-              if (!discDate) return
-              setDiscLoading(true)
-              setDiscrepancies(null)
-              try {
-                const res = await fetch(`/api/discrepancies?date=${discDate}`, { cache: 'no-store' })
-                const d = await res.json()
-                setDiscrepancies(d.mboMissing ?? [])
-              } catch { setDiscrepancies([]) }
-              setDiscLoading(false)
-            }}
-            disabled={discLoading || !discDate}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
-            style={{
-              background: discLoading ? 'var(--surface)' : 'var(--accent)',
-              color: discLoading ? 'var(--text-muted)' : '#fff',
-              border: 'none',
-            }}
-          >
-            {discLoading ? 'Checking...' : 'Check'}
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <SectionTitle>MBO Reconciliation</SectionTitle>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="date"
+              value={discDate}
+              onChange={e => { setDiscDate(e.target.value); setDiscrepancies(null) }}
+              style={{
+                padding: '6px 10px', fontSize: '12px', background: 'var(--surface)',
+                color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px',
+                outline: 'none',
+              }}
+            />
+            <button
+              onClick={async () => {
+                const checkDate = discDate || new Date().toISOString().slice(0, 10)
+                if (!discDate) setDiscDate(checkDate)
+                setDiscLoading(true)
+                setDiscrepancies(null)
+                try {
+                  const res = await fetch(`/api/discrepancies?date=${checkDate}`, { cache: 'no-store' })
+                  const d = await res.json()
+                  setDiscrepancies(d.mboMissing ?? [])
+                } catch { setDiscrepancies([]) }
+                setDiscLoading(false)
+              }}
+              disabled={discLoading}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap"
+              style={{
+                background: discLoading ? 'var(--surface)' : 'var(--accent)',
+                color: discLoading ? 'var(--text-muted)' : '#fff',
+                border: 'none',
+              }}
+            >
+              {discLoading ? 'Checking MBO...' : discDate ? 'Check vs MBO' : 'Check Today vs MBO'}
+            </button>
+          </div>
         </div>
         {discrepancies !== null && (
-          <div style={{ ...cardStyle }}>
+          <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
             {discrepancies.length === 0 ? (
-              <p style={{ fontSize: '13px', color: 'var(--green)', fontWeight: 600 }}>
-                No discrepancies -- MBO and portal records match.
-              </p>
+              <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--green)', fontSize: '16px' }}>&#10003;</span>
+                <span style={{ fontSize: '13px', color: 'var(--green)', fontWeight: 600 }}>
+                  All clear -- MBO and portal records match for {formatShortDate(discDate)}.
+                </span>
+              </div>
             ) : (
               <>
-                <p style={{ fontSize: '12px', color: 'var(--red)', fontWeight: 600, marginBottom: '12px' }}>
-                  {discrepancies.length} client{discrepancies.length !== 1 ? 's' : ''} found in MBO but missing from portal records:
-                </p>
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--red-muted)' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--red)', fontWeight: 700 }}>
+                    {discrepancies.length} Privilee client{discrepancies.length !== 1 ? 's' : ''} in MBO but not in portal ({formatShortDate(discDate)})
+                  </span>
+                </div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {['Client', 'Email', 'Class', 'Time', 'Studio', 'Status'].map(h => (
+                      <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                        {['Client', 'Email', 'Class', 'Time', 'Studio', 'MBO Status'].map(h => (
                           <th key={h} style={{
-                            padding: '8px 10px', textAlign: 'left', fontSize: '10px', fontWeight: 700,
+                            padding: '10px 12px', textAlign: 'left', fontSize: '10px', fontWeight: 700,
                             textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)',
                           }}>{h}</th>
                         ))}
@@ -358,15 +366,16 @@ export default function ReportsView() {
                       {discrepancies.map((d, i) => (
                         <tr key={`${d.clientId}-${d.classTime}-${i}`} style={{
                           borderBottom: i < discrepancies.length - 1 ? '1px solid var(--border)' : 'none',
+                          background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
                         }}>
-                          <td style={{ padding: '8px 10px', fontWeight: 500, color: 'var(--text)' }}>
+                          <td style={{ padding: '10px 12px', fontWeight: 500, color: 'var(--text)' }}>
                             {d.firstName} {d.lastName}
                           </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{d.email}</td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text)' }}>{d.className}</td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{d.classTime}</td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{d.studioName}</td>
-                          <td style={{ padding: '8px 10px' }}>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontSize: '11px' }}>{d.email}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text)', fontWeight: 500 }}>{d.className}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{d.classTime}</td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{d.studioName}</td>
+                          <td style={{ padding: '10px 12px' }}>
                             <Badge
                               text={d.signedIn ? 'Checked In' : 'Not Signed'}
                               color={d.signedIn ? 'var(--green)' : 'var(--text-muted)'}
