@@ -20,11 +20,13 @@ async function syncDate(
   resync: boolean
 ): Promise<{ synced: number; total: number; date: string; errors?: string[] }> {
   // Fetch bookings for this date (unsynced only, unless resync=true)
+  // Always skip bookings manually marked as late_cancel/early_cancel (correction from cancel API)
   let query = supabase
     .from('privilee_bookings')
     .select('id, class_id, client_id, studio_site_id, class_date')
     .eq('type', 'booking')
     .eq('class_date', date)
+    .not('attendance', 'in', '("late_cancel","early_cancel")')
 
   if (!resync) {
     query = query.is('attendance', null)
@@ -131,8 +133,10 @@ export async function POST(req: Request) {
   let dates: string[]
 
   if (mode === 'hourly') {
-    // Sync today's bookings (catch check-ins as they happen)
+    // Sync today's bookings — always resync to catch check-ins after initial sync
     dates = [dubaiDate(0)]
+    const results = await Promise.all(dates.map(d => syncDate(supabase, d, true)))
+    return NextResponse.json({ mode: 'hourly', results: results.length === 1 ? results[0] : results })
   } else if (mode === 'nightly') {
     // Sync yesterday + 5 days ago (catch late updates), force resync
     dates = [dubaiDate(-1), dubaiDate(-5)]
