@@ -305,11 +305,13 @@ export default function ReportsView() {
             <input
               type="date"
               value={discDate}
+              max={new Date().toISOString().slice(0, 10)}
               onChange={e => { setDiscDate(e.target.value); setDiscrepancies(null) }}
+              onClick={e => (e.target as HTMLInputElement).showPicker?.()}
               style={{
                 padding: '6px 10px', fontSize: '12px', background: 'var(--surface)',
                 color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px',
-                outline: 'none',
+                outline: 'none', cursor: 'pointer',
               }}
             />
             <button
