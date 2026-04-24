@@ -185,7 +185,17 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
           </span>
 
           {/* Class name */}
-          <span className="flex-1 font-semibold text-sm truncate">{cls.className}</span>
+          <span className="flex-1 font-semibold text-sm truncate flex items-center gap-2">
+            {cls.className}
+            {past && (
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
+                style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--red)' }}
+              >
+                PAST
+              </span>
+            )}
+          </span>
 
           {/* Count pill: total / privilee */}
           <span

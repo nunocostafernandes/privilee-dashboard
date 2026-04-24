@@ -30,6 +30,28 @@ export default function DateStrip({ active, onChange, dayStats }: Props) {
     return () => clearTimeout(timer)
   }, [today, active, onChange])
 
+  // Backstop for the midnight timer: if the laptop sleeps or the tab is
+  // backgrounded, the setTimeout above may be throttled and never fire. On tab
+  // refocus we re-check the real clock and roll `today` (and the active date,
+  // if it was pinned to the old today) forward.
+  useEffect(() => {
+    function syncToday() {
+      const realToday = new Date()
+      if (toDateString(realToday) !== toDateString(today)) {
+        setToday(realToday)
+        if (active === toDateString(today)) {
+          onChange(toDateString(realToday))
+        }
+      }
+    }
+    window.addEventListener('focus', syncToday)
+    document.addEventListener('visibilitychange', syncToday)
+    return () => {
+      window.removeEventListener('focus', syncToday)
+      document.removeEventListener('visibilitychange', syncToday)
+    }
+  }, [today, active, onChange])
+
   const goBack = useCallback(() => setOffset(o => o - 6), [])
   const goForward = useCallback(() => setOffset(o => o + 6), [])
   const goToday = useCallback(() => { setOffset(0); onChange(toDateString(today)) }, [today, onChange])

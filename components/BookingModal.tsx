@@ -23,6 +23,12 @@ function formatTime(dt: string) {
   return new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
+function formatFullDate(dt: string) {
+  return new Date(dt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const PAST_GRACE_MS = 20 * 60 * 1000
+
 export default function BookingModal({ classId, className, startTime, siteId, studioName, onClose, onBooked }: Props) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName]   = useState('')
@@ -34,8 +40,11 @@ export default function BookingModal({ classId, className, startTime, siteId, st
 
   const [suggestions, setSuggestions] = useState<ClientSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [confirmPast, setConfirmPast] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const isPast = new Date(startTime).getTime() < Date.now() - PAST_GRACE_MS
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -79,10 +88,15 @@ export default function BookingModal({ classId, className, startTime, siteId, st
       const res = await fetch('/api/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile }),
+        body: JSON.stringify({ classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile, confirmPast: isPast ? confirmPast : undefined }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Booking failed')
+      if (!res.ok) {
+        const msg = data.error === 'past_class_requires_confirmation'
+          ? 'This class is in the past. Tick the confirmation box to book anyway.'
+          : data.error ?? 'Booking failed'
+        throw new Error(msg)
+      }
       setBookedName(`${firstName} ${lastName}`.trim())
       setStatus('success')
       onBooked()
@@ -154,6 +168,37 @@ export default function BookingModal({ classId, className, startTime, siteId, st
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isPast && (
+              <div
+                className="px-3.5 py-3 rounded-xl text-xs"
+                style={{
+                  background: 'var(--red-muted)',
+                  color: 'var(--red)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                }}
+              >
+                <div className="flex items-start gap-2 mb-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <div>
+                    <div className="font-bold mb-0.5">Past class</div>
+                    <div style={{ color: 'var(--text-muted)' }}>
+                      This class was on {formatFullDate(startTime)} at {formatTime(startTime)}. Only book if you are correcting a missed entry.
+                    </div>
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer mt-2 pt-2" style={{ borderTop: '1px solid rgba(239,68,68,0.2)' }}>
+                  <input
+                    type="checkbox"
+                    checked={confirmPast}
+                    onChange={e => setConfirmPast(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  <span style={{ color: 'var(--text)' }}>Yes, book into this past class</span>
+                </label>
+              </div>
+            )}
             <div className="relative" ref={dropdownRef}>
               <label className="block text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)' }}>
                 Email
@@ -250,11 +295,11 @@ export default function BookingModal({ classId, className, startTime, siteId, st
 
             <button
               type="submit"
-              disabled={status === 'loading'}
+              disabled={status === 'loading' || (isPast && !confirmPast)}
               className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-50 transition-all cursor-pointer"
               style={{ background: 'var(--accent)', color: '#fff' }}
             >
-              {status === 'loading' ? 'Booking...' : 'Book Class'}
+              {status === 'loading' ? 'Booking...' : isPast ? 'Book Past Class' : 'Book Class'}
             </button>
           </form>
         )}

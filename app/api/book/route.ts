@@ -171,12 +171,27 @@ async function bookClass(
   return data.Visit?.Id ?? null
 }
 
+const PAST_GRACE_MS = 20 * 60 * 1000
+
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile } = body
+  const { classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile, confirmPast } = body
 
   if (!classId || !siteId || !firstName || !lastName || !email) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  // Past-class guard: require explicit confirmation to book a class that started
+  // more than 20 minutes ago. Prevents stale-tab bookings (e.g. yesterday's class
+  // looking like today's after the UI "today" drifted overnight).
+  if (startTime) {
+    const classStart = new Date(startTime).getTime()
+    if (!Number.isNaN(classStart) && classStart < Date.now() - PAST_GRACE_MS && !confirmPast) {
+      return NextResponse.json(
+        { error: 'past_class_requires_confirmation' },
+        { status: 400 }
+      )
+    }
   }
 
   const supabase = createClient(
