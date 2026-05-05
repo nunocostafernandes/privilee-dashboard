@@ -26,13 +26,15 @@ async function syncDate(
   resync: boolean
 ): Promise<{ synced: number; total: number; date: string; errors?: string[] }> {
   // Fetch bookings for this date (unsynced only, unless resync=true)
-  // Always skip bookings manually marked as late_cancel/early_cancel (correction from cancel API)
+  // Always skip bookings manually marked as late_cancel/early_cancel (correction from cancel API).
+  // OR-with-IS-NULL is required: NULL NOT IN (...) evaluates to NULL in Postgres, which would silently
+  // exclude the very unsynced rows we need to process.
   let query = supabase
     .from('privilee_bookings')
     .select('id, class_id, client_id, studio_site_id, class_date, studio_name, class_name, class_time, client_name, client_email, client_mobile')
     .eq('type', 'booking')
     .eq('class_date', date)
-    .not('attendance', 'in', '("late_cancel","early_cancel")')
+    .or('attendance.is.null,attendance.not.in.(late_cancel,early_cancel)')
 
   if (!resync) {
     query = query.is('attendance', null)
