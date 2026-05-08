@@ -175,10 +175,10 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
         }}
         onClick={toggle}
       >
-        <div className="flex items-center px-4 py-3 gap-4">
+        <div className="flex items-center px-4 py-3.5 gap-3">
           {/* Time */}
           <span
-            className="text-xs font-semibold w-[60px] shrink-0 tabular-nums"
+            className="text-xs font-semibold w-[72px] shrink-0 tabular-nums"
             style={{ color: 'var(--text-muted)' }}
           >
             {formatTime(cls.startTime)}
@@ -197,63 +197,45 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
             )}
           </span>
 
-          {/* Right column: big count + action buttons stacked below */}
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            {/* Big count + privilee */}
-            <div className="flex items-baseline gap-1 leading-none">
-              <span
-                className="text-2xl font-bold tabular-nums tracking-tight"
-                style={{ color: pill.color }}
-              >
-                {visits !== null ? visits.length : cls.bookingCount}
-              </span>
-              {(cls.privileeCount != null && cls.privileeCount > 0) && (
-                <span
-                  className="text-sm font-bold tabular-nums"
-                  style={{ color: past ? 'var(--text-muted)' : 'var(--accent)' }}
-                >
-                  /{cls.privileeCount}P
-                </span>
-              )}
-            </div>
+          {/* Count pill: total / privilee */}
+          <span
+            className="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 tabular-nums"
+            style={{ background: pill.bg, color: pill.color }}
+          >
+            {visits !== null ? visits.length : cls.bookingCount}
+            {(cls.privileeCount != null && cls.privileeCount > 0) && (
+              <span style={{ color: 'var(--accent)' }}>{` / ${cls.privileeCount}P`}</span>
+            )}
+          </span>
 
-            {/* Action buttons row */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleAddClick}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:scale-105"
-                style={{
-                  background: 'var(--accent-glow)',
-                  color: 'var(--accent)',
-                  border: '1px solid rgba(249,115,22,0.3)',
-                }}
-                title="Add Privilee client"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); toggle() }}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:scale-105"
-                style={{
-                  background: 'var(--surface)',
-                  color: 'var(--text-muted)',
-                  border: '1px solid var(--border)',
-                }}
-                title={expanded ? 'Hide roster' : 'Show roster'}
-              >
-                <svg
-                  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  className="transition-transform duration-200"
-                  style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-            </div>
-          </div>
+          {/* Add button */}
+          <button
+            onClick={handleAddClick}
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all cursor-pointer"
+            style={{
+              background: 'var(--accent-glow)',
+              color: 'var(--accent)',
+              border: '1px solid rgba(249,115,22,0.3)',
+            }}
+            title="Add Privilee client"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+
+          {/* Chevron */}
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round"
+            className="shrink-0 transition-transform duration-200"
+            style={{
+              color: 'var(--text-muted)',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+          >
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         </div>
 
         {/* Expanded visits */}
