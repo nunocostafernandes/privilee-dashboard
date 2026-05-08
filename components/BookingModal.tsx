@@ -27,6 +27,10 @@ function formatFullDate(dt: string) {
   return new Date(dt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function formatShortDate(dt: string) {
+  return new Date(dt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
 const PAST_GRACE_MS = 20 * 60 * 1000
 
 export default function BookingModal({ classId, className, startTime, siteId, studioName, onClose, onBooked }: Props) {
@@ -132,7 +136,7 @@ export default function BookingModal({ classId, className, startTime, siteId, st
           <div>
             <h2 className="font-bold text-base">{className}</h2>
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-              {studioName} &middot; {formatTime(startTime)}
+              {studioName} &middot; {formatShortDate(startTime)} &middot; {formatTime(startTime)}
             </p>
           </div>
           <button
