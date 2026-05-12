@@ -47,14 +47,13 @@ function lastDayOfMonth(year: number, month: number): number {
 }
 
 function classifyOutcome(v: MboVisit): ExportVisit['outcome'] {
-  // Mirrors attendance-sync logic:
-  //   SignedIn=true                                       => attended
-  //   AppointmentStatus in ('LateCanceled', 'Cancelled')  => late_cancel
-  //   otherwise (in roster, not signed in, not cancelled) => no_show
-  // Visits absent from MBO roster aren't reachable here (we get them from /classvisits).
-  if (v.SignedIn === true) return 'attended'
+  // AppointmentStatus takes precedence over SignedIn so an explicit 'NoShow'
+  // marked post-class isn't overridden by an earlier sign-in. Matches what
+  // Privilee's monthly Excel emits (which uses the authoritative status flag).
   const s = v.AppointmentStatus ?? ''
   if (s === 'LateCanceled' || s === 'Cancelled') return 'late_cancel'
+  if (s === 'NoShow' || s === 'No-Show' || s === 'No Show') return 'no_show'
+  if (v.SignedIn === true) return 'attended'
   return 'no_show'
 }
 
