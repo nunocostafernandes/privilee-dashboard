@@ -137,6 +137,7 @@ async function fetchClientDetails(siteId: string, clientIds: string[]): Promise<
 export async function GET(req: NextRequest) {
   const year = parseInt(req.nextUrl.searchParams.get('year') ?? '', 10)
   const month = parseInt(req.nextUrl.searchParams.get('month') ?? '', 10)
+  const studioFilter = req.nextUrl.searchParams.get('studio')  // optional: limit to one studio for batching
   if (!year || !month || month < 1 || month > 12) {
     return NextResponse.json({ error: 'Invalid year/month' }, { status: 400 })
   }
@@ -149,7 +150,11 @@ export async function GET(req: NextRequest) {
   const allVisits: ExportVisit[] = []
   const errors: string[] = []
 
-  for (const studio of STUDIOS) {
+  const studiosToScan = studioFilter
+    ? STUDIOS.filter(s => s.name.toLowerCase() === studioFilter.toLowerCase() || s.siteId === studioFilter)
+    : STUDIOS
+
+  for (const studio of studiosToScan) {
     try {
       const classes = await fetchClassesForDateRange(studio.siteId, start, end)
       const collected: { cls: MboClassRaw; visit: MboVisit }[] = []
