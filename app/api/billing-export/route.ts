@@ -64,13 +64,26 @@ function isPrivileeService(v: MboVisit): boolean {
 }
 
 async function fetchClassesForDateRange(siteId: string, start: string, end: string): Promise<MboClassRaw[]> {
-  const res = await mboFetch('/class/classes', siteId, {
-    StartDateTime: `${start}T00:00:00`,
-    EndDateTime: `${end}T23:59:59`,
-  })
-  if (!res.ok) throw new Error(`MBO classes failed: ${res.status}`)
-  const data = await res.json()
-  return (data.Classes ?? []) as MboClassRaw[]
+  // MBO paginates /class/classes (default limit 100). Iterate with Offset until empty.
+  const PAGE = 200
+  let offset = 0
+  const all: MboClassRaw[] = []
+  for (;;) {
+    const res = await mboFetch('/class/classes', siteId, {
+      StartDateTime: `${start}T00:00:00`,
+      EndDateTime: `${end}T23:59:59`,
+      Limit: String(PAGE),
+      Offset: String(offset),
+    })
+    if (!res.ok) throw new Error(`MBO classes failed: ${res.status}`)
+    const data = await res.json()
+    const batch = (data.Classes ?? []) as MboClassRaw[]
+    all.push(...batch)
+    if (batch.length < PAGE) break
+    offset += PAGE
+    if (offset > 10000) break  // safety
+  }
+  return all
 }
 
 async function fetchVisits(siteId: string, classId: number): Promise<MboVisit[]> {
