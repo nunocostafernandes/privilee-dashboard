@@ -1,7 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { mboFetch } from '@/lib/mbo-client'
 
 const MBO_BASE = 'https://api.mindbodyonline.com/public/v6'
+
+// Statuses MBO reports for a booking that is no longer active (cancelled either side).
+const CANCELLED_STATUSES = new Set([
+  'Cancelled', 'LateCanceled', 'LateCancelled', 'EarlyCanceled', 'EarlyCancelled',
+])
+
+// Verify the outcome of a cancel directly against MBO's class roster.
+// Returns true  = client still has an active (non-cancelled) booking in the class,
+//         false = confirmed removed / cancelled,
+//         null  = MBO could not be read (transient) -> caller should not block.
+async function isClientStillBooked(
+  siteId: string,
+  classId: string,
+  clientId: string
+): Promise<boolean | null> {
+  try {
+    const res = await mboFetch('/class/classvisits', siteId, { ClassID: String(classId) })
+    if (!res.ok) return null
+    const data = await res.json()
+    const visits: { ClientId?: string; AppointmentStatus?: string }[] = data?.Class?.Visits ?? []
+    return visits.some(v =>
+      String(v.ClientId) === String(clientId) &&
+      !CANCELLED_STATUSES.has(String(v.AppointmentStatus))
+    )
+  } catch {
+    return null
+  }
+}
 
 const tokenCache: Record<string, { token: string; expiry: number }> = {}
 
@@ -81,9 +110,20 @@ export async function POST(req: NextRequest) {
         }),
       })
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err?.Error?.Message ?? 'Failed to cancel booking')
+      // MBO can return HTTP 200 with an error inside the body, so check both.
+      const body = await res.json().catch(() => ({} as Record<string, unknown>))
+      if (!res.ok || (body as { Error?: unknown })?.Error) {
+        const msg = (body as { Error?: { Message?: string } })?.Error?.Message
+        throw new Error(msg ?? 'Failed to cancel booking')
+      }
+
+      // Confirm the cancel actually took effect in MBO before recording it in the portal.
+      // MBO sometimes accepts the call but leaves the client booked, which produced silent
+      // portal<->MBO desyncs (cancelled in portal, still attended in MBO). Fail loudly so
+      // staff retry. A null result means MBO couldn't be read -> fall back to prior behaviour.
+      const stillBooked = await isClientStillBooked(siteId, classId, clientId)
+      if (stillBooked === true) {
+        throw new Error('Cancel did not take effect in MBO — the client is still booked. Please try again.')
       }
     }
 
