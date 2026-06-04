@@ -19,6 +19,7 @@ interface Billable {
   topUps: number
   topUpsAed: number
   excess: number
+  excessAed: number
   total: number
   totalAed: number
 }
@@ -296,6 +297,74 @@ export default function ReportsView() {
         <KPICard label="Complimentary" value={summary.complimentary} color="var(--text)" />
         <KPICard label="Top Ups" value={summary.topUps} color="#60a5fa" />
       </div>
+
+      {/* Billing Summary -- invoice-style AED totals (contract method) */}
+      <section>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <SectionTitle>Billing Summary</SectionTitle>
+          <button
+            onClick={() => {
+              const rows = [
+                ['Line item', 'Qty', 'Rate (AED)', 'Amount (AED)'],
+                ['Excess check-ins (>85/day)', billable.excess, 80, billable.excessAed],
+                ['Top-up check-ins', billable.topUps, 85, billable.topUpsAed],
+                ['No-shows', billable.noShows, 80, billable.noShowsAed],
+                ['Late cancels', billable.lateCancels, 80, billable.lateCancelsAed],
+                ['TOTAL', billable.total, '', billable.totalAed],
+              ]
+              const csv = rows.map(r => r.join(',')).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url; a.download = `privilee-billing-${month}.csv`; a.click()
+              URL.revokeObjectURL(url)
+            }}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap"
+            style={{ background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+          >
+            Export CSV
+          </button>
+        </div>
+        <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ background: 'var(--surface)' }}>
+                {['Line item', 'Qty', 'Rate (AED)', 'Amount (AED)'].map((h, i) => (
+                  <th key={h} style={{
+                    padding: '10px 16px', textAlign: i === 0 ? 'left' : 'right',
+                    color: 'var(--text-muted)', fontWeight: 700, fontSize: '10px',
+                    textTransform: 'uppercase', letterSpacing: '0.05em',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { label: 'Excess check-ins (>85/day)', qty: billable.excess, rate: 80, aed: billable.excessAed, color: 'var(--red)' },
+                { label: 'Top-up check-ins', qty: billable.topUps, rate: 85, aed: billable.topUpsAed, color: '#60a5fa' },
+                { label: 'No-shows', qty: billable.noShows, rate: 80, aed: billable.noShowsAed, color: 'var(--red)' },
+                { label: 'Late cancels', qty: billable.lateCancels, rate: 80, aed: billable.lateCancelsAed, color: 'var(--red)' },
+              ].map(r => (
+                <tr key={r.label} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td style={{ padding: '10px 16px', color: 'var(--text)', fontWeight: 600 }}>{r.label}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'right', color: r.color, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{r.qty}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{r.rate}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{r.aed.toLocaleString()}</td>
+                </tr>
+              ))}
+              <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface)' }}>
+                <td style={{ padding: '12px 16px', color: 'var(--text)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '11px' }}>Total</td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{billable.total}</td>
+                <td style={{ padding: '12px 16px' }}></td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--accent)', fontWeight: 800, fontSize: '15px', fontVariantNumeric: 'tabular-nums' }}>AED {billable.totalAed.toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.5 }}>
+          Contract method: 1 free comp per member / week / emirate. Top-ups (2nd+ that week) billed @85 and excluded from the 85/day cap. Excess comp over 85/day, no-shows and late cancels billed @80.
+        </p>
+      </section>
 
       {/* MBO Discrepancy Check */}
       <section>
