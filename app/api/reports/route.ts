@@ -277,7 +277,10 @@ export async function GET(req: Request) {
         totals.lateCancel += studios[s].lateCancel.length
         totals.topUp += studios[s].topUp.length
       }
-      const excess = Math.max(0, totals.attended - DAILY_CAP)
+      // Contract rule (matches the invoice generator): only COMPLIMENTARY check-ins
+      // count toward the 85/day cap. Top-ups are already billed @85 and are excluded.
+      const compAttended = totals.attended - totals.topUp
+      const excess = Math.max(0, compAttended - DAILY_CAP)
       return { date, studios: studioCounts, clients: studioClients, totals, excess }
     })
 
@@ -290,8 +293,9 @@ export async function GET(req: Request) {
     topUps: topUps,
     topUpsAed: topUps * 85,
     excess: totalExcess,
+    excessAed: totalExcess * 80,
     total: billableNoShows + billableLateCancels + topUps + totalExcess,
-    totalAed: (billableNoShows * 80) + (billableLateCancels * 80) + (topUps * 85),
+    totalAed: (billableNoShows * 80) + (billableLateCancels * 80) + (topUps * 85) + (totalExcess * 80),
   }
 
   return NextResponse.json({
