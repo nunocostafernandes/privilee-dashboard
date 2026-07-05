@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
       signedIn:    v.SignedIn === true,
     }))
 
-    return NextResponse.json(visits)
+    return NextResponse.json(visits, { headers: { 'Cache-Control': 'no-store, max-age=0' } })
   } catch {
     return NextResponse.json({ error: 'MBO unavailable' }, { status: 503 })
   }

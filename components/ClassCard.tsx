@@ -76,7 +76,7 @@ export default function ClassCard({ cls, siteId, studioName, refreshKey, privOnl
     setLoading(true)
     setError(false)
     try {
-      const res = await fetch(`/api/classvisits?classId=${cls.classId}&siteId=${siteId}`)
+      const res = await fetch(`/api/classvisits?classId=${cls.classId}&siteId=${siteId}`, { cache: 'no-store' })
       if (!res.ok) throw new Error()
       setVisits(await res.json())
     } catch {
