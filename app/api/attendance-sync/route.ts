@@ -17,6 +17,9 @@ interface PrivileeBooking {
   client_name: string
   client_email: string
   client_mobile: string | null
+  mbo_booking_id: number | null
+  attendance: string | null
+  created_at: string
 }
 
 async function syncDate(
@@ -31,14 +34,18 @@ async function syncDate(
   // exclude the very unsynced rows we need to process.
   let query = supabase
     .from('privilee_bookings')
-    .select('id, class_id, client_id, studio_site_id, class_date, studio_name, class_name, class_time, client_name, client_email, client_mobile')
+    .select('id, class_id, client_id, studio_site_id, class_date, studio_name, class_name, class_time, client_name, client_email, client_mobile, mbo_booking_id, attendance, created_at')
     .eq('type', 'booking')
     .eq('class_date', date)
-    .or('attendance.is.null,attendance.not.in.(late_cancel,early_cancel)')
 
   if (!resync) {
+    // Incremental (hourly initial): only unsynced rows.
     query = query.is('attendance', null)
   }
+  // On resync we intentionally include rows already marked early_cancel/late_cancel
+  // so a FALSE cancel can self-heal back to 'attended' when MBO shows the exact
+  // booked visit signed in. Legit cancels are protected below (only overridden
+  // when that specific visit is signed in).
 
   const { data: bookings } = await query
 
@@ -78,25 +85,61 @@ async function syncDate(
       }
 
       const data = await res.json()
-      const visits: { ClientId?: string; AppointmentStatus?: string; SignedIn?: boolean }[] = data.Class?.Visits ?? []
+      const visits: { Id?: number; ClientId?: string; AppointmentStatus?: string; SignedIn?: boolean }[] = data.Class?.Visits ?? []
 
-      const visitMap: Record<string, { signedIn: boolean; status: string }> = {}
+      // GUARD: never mark anyone cancelled from an empty/failed roster read. A
+      // transient empty MBO response used to silently mass-cancel booked clients.
+      if (visits.length === 0) {
+        errors.push(`Empty roster for class ${classId} -- skipped, no changes`)
+        continue
+      }
+
+      // Index by the EXACT booked visit id (MBO Visit.Id == our mbo_booking_id),
+      // NOT client id. Duplicate MBO client profiles and cancel+rebook would
+      // otherwise resolve a booking to the wrong visit and mis-mark it.
+      const byVisit: Record<string, { signedIn: boolean; status: string }> = {}
       for (const v of visits) {
-        if (v.ClientId) {
-          visitMap[v.ClientId] = {
-            signedIn: v.SignedIn === true,
-            status: v.AppointmentStatus ?? 'Unknown',
-          }
+        if (v.Id != null) {
+          byVisit[String(v.Id)] = { signedIn: v.SignedIn === true, status: v.AppointmentStatus ?? 'Unknown' }
         }
       }
 
-      for (const b of group.bookings) {
-        const visit = visitMap[b.client_id]
-        let attendance: string
+      const CANCELLED = new Set(['Cancelled', 'LateCanceled', 'LateCancelled', 'Canceled'])
+      const nowDubai = Date.now() + 4 * 60 * 60 * 1000
+      const classIsPast = (b: PrivileeBooking): boolean => {
+        const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec((b.class_time || '').trim())
+        if (!m) return false
+        let hh = parseInt(m[1], 10) % 12
+        if (/pm/i.test(m[3])) hh += 12
+        const startUtc = Date.parse(`${b.class_date}T00:00:00Z`) + (hh * 60 + parseInt(m[2], 10)) * 60000
+        return nowDubai > startUtc + 20 * 60 * 1000
+      }
+      const recentlyBooked = (b: PrivileeBooking): boolean =>
+        Date.now() - Date.parse(b.created_at) < 3 * 60 * 60 * 1000
 
-        if (!visit) {
-          // Client not in MBO roster -- early cancel is the only action that removes from roster.
-          // Check for existing cancel row first; if none, assume early cancel.
+      for (const b of group.bookings) {
+        const wasCancel = b.attendance === 'early_cancel' || b.attendance === 'late_cancel'
+        const v = b.mbo_booking_id != null ? byVisit[String(b.mbo_booking_id)] : undefined
+        let attendance: string | null
+
+        if (v && v.signedIn) {
+          // The exact booked visit is present AND checked in -> attended.
+          // This is also what un-does any earlier FALSE cancel.
+          attendance = 'attended'
+        } else if (wasCancel) {
+          // Protect an existing cancel: only the signed-in case above may override it.
+          continue
+        } else if (v && CANCELLED.has(v.status)) {
+          attendance = 'late_cancel'
+        } else if (v) {
+          // Booked visit is on the roster but not signed in.
+          attendance = classIsPast(b) ? 'no_show' : null
+        } else {
+          // The booked visit is NOT on a populated roster. Only treat as a
+          // genuine early cancel if we can trust it: we have a visit id to match,
+          // and the booking is not brand new (roster can lag a fresh booking).
+          if (b.mbo_booking_id == null || recentlyBooked(b)) continue
+          attendance = 'early_cancel'
           const { data: cancelRow } = await supabase
             .from('privilee_bookings')
             .select('type')
@@ -109,8 +152,6 @@ async function syncDate(
           if (cancelRow) {
             attendance = cancelRow.type
           } else {
-            attendance = 'early_cancel'
-            // Insert the missing early_cancel row so reports are complete
             await supabase.from('privilee_bookings').insert({
               type: 'early_cancel',
               studio_site_id: b.studio_site_id,
@@ -125,14 +166,9 @@ async function syncDate(
               client_mobile: b.client_mobile,
             }).then(() => {}).catch(() => {}) // best-effort, unique index prevents duplicates
           }
-        } else if (visit.signedIn) {
-          attendance = 'attended'
-        } else if (visit.status === 'LateCanceled' || visit.status === 'Cancelled') {
-          attendance = 'late_cancel'
-        } else {
-          attendance = 'no_show'
         }
 
+        if (attendance === null || attendance === b.attendance) continue
         const { error } = await supabase
           .from('privilee_bookings')
           .update({ attendance })
