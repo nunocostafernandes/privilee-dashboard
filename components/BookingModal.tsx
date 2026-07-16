@@ -38,6 +38,7 @@ export default function BookingModal({ classId, className, startTime, siteId, st
   const [lastName, setLastName]   = useState('')
   const [email, setEmail]         = useState('')
   const [mobile, setMobile]       = useState('')
+  const [gender, setGender]       = useState<'' | 'Male' | 'Female'>('')
   const [status, setStatus]       = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg]   = useState('')
   const [bookedName, setBookedName] = useState('')
@@ -92,7 +93,7 @@ export default function BookingModal({ classId, className, startTime, siteId, st
       const res = await fetch('/api/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile, confirmPast: isPast ? confirmPast : undefined }),
+        body: JSON.stringify({ classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile, gender: gender || undefined, confirmPast: isPast ? confirmPast : undefined }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -285,6 +286,32 @@ export default function BookingModal({ classId, className, startTime, siteId, st
               />
             </div>
 
+            <div>
+              <label className="block text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Gender <span style={{ color: 'var(--red)' }}>*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {(['Male', 'Female'] as const).map(g => {
+                  const active = gender === g
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setGender(active ? '' : g)}
+                      className="rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors cursor-pointer"
+                      style={{
+                        background: active ? 'var(--accent)' : 'var(--bg)',
+                        border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                        color: active ? '#fff' : 'var(--text)',
+                      }}
+                    >
+                      {g}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             {status === 'error' && (
               <div
                 className="px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2"
@@ -299,7 +326,7 @@ export default function BookingModal({ classId, className, startTime, siteId, st
 
             <button
               type="submit"
-              disabled={status === 'loading' || (isPast && !confirmPast)}
+              disabled={status === 'loading' || (isPast && !confirmPast) || !gender}
               className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-50 transition-all cursor-pointer"
               style={{ background: 'var(--accent)', color: '#fff' }}
             >

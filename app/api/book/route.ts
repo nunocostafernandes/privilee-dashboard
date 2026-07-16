@@ -84,14 +84,20 @@ async function findClientByEmail(token: string, siteId: string, email: string): 
 
 async function createMboClient(
   token: string, siteId: string,
-  firstName: string, lastName: string, email: string, mobile: string
+  firstName: string, lastName: string, email: string, mobile: string,
+  gender?: string
 ): Promise<string> {
+  const clientBody: Record<string, unknown> = {
+    FirstName: firstName, LastName: lastName, Email: email, MobilePhone: mobile,
+  }
+  // Only set Gender when staff explicitly picked one; omitting it keeps the
+  // request identical to the prior behaviour. MBO's site values are 'Male'/'Female'.
+  if (gender === 'Male' || gender === 'Female') clientBody.Gender = gender
+
   const res = await fetch(`${MBO_BASE}/client/addclient`, {
     method: 'POST',
     headers: headers(token, siteId),
-    body: JSON.stringify({
-      FirstName: firstName, LastName: lastName, Email: email, MobilePhone: mobile,
-    }),
+    body: JSON.stringify(clientBody),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -175,7 +181,7 @@ const PAST_GRACE_MS = 20 * 60 * 1000
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile, confirmPast } = body
+  const { classId, siteId, studioName, className, startTime, firstName, lastName, email, mobile, gender, confirmPast } = body
 
   if (!classId || !siteId || !firstName || !lastName || !email) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -207,7 +213,7 @@ export async function POST(req: NextRequest) {
     let clientId = await findClientByEmail(token, siteId, email)
     const isNewClient = !clientId
     if (!clientId) {
-      clientId = await createMboClient(token, siteId, firstName, lastName, email, mobile ?? '')
+      clientId = await createMboClient(token, siteId, firstName, lastName, email, mobile ?? '', gender)
     }
 
     // 3. Get Privilee service ID
