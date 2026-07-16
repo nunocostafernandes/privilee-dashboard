@@ -17,6 +17,7 @@ interface ClientSuggestion {
   lastName: string
   email: string
   mobile: string
+  gender?: '' | 'Male' | 'Female'
 }
 
 function formatTime(dt: string) {
@@ -81,6 +82,9 @@ export default function BookingModal({ classId, className, startTime, siteId, st
     setFirstName(c.firstName)
     setLastName(c.lastName)
     setMobile(c.mobile)
+    // Pre-fill gender from the existing MBO record so staff don't re-enter it.
+    // Falls back to unset when MBO has no gender ('None') — staff can still pick.
+    setGender(c.gender === 'Male' || c.gender === 'Female' ? c.gender : '')
     setSuggestions([])
     setShowSuggestions(false)
   }

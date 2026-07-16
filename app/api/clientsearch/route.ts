@@ -77,13 +77,14 @@ export async function GET(req: NextRequest) {
         if (!retry.ok) return NextResponse.json([])
         const retryData = await retry.json()
         const retryClients = (retryData.Clients ?? []).map((c: {
-          Id: string; FirstName?: string; LastName?: string; Email?: string; MobilePhone?: string
+          Id: string; FirstName?: string; LastName?: string; Email?: string; MobilePhone?: string; Gender?: string
         }) => ({
           id: c.Id,
           firstName: c.FirstName ?? '',
           lastName: c.LastName ?? '',
           email: c.Email ?? '',
           mobile: c.MobilePhone ?? '',
+          gender: c.Gender === 'Male' || c.Gender === 'Female' ? c.Gender : '',
         }))
         return NextResponse.json(retryClients)
       }
@@ -92,13 +93,14 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json()
     const clients = (data.Clients ?? []).map((c: {
-      Id: string; FirstName?: string; LastName?: string; Email?: string; MobilePhone?: string
+      Id: string; FirstName?: string; LastName?: string; Email?: string; MobilePhone?: string; Gender?: string
     }) => ({
       id: c.Id,
       firstName: c.FirstName ?? '',
       lastName: c.LastName ?? '',
       email: c.Email ?? '',
       mobile: c.MobilePhone ?? '',
+      gender: c.Gender === 'Male' || c.Gender === 'Female' ? c.Gender : '',
     }))
 
     return NextResponse.json(clients)
